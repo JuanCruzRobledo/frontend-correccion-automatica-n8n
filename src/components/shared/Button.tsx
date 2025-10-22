@@ -22,16 +22,16 @@ export const Button = ({
 }: ButtonProps) => {
   // Estilos base
   const baseStyles =
-    'font-medium rounded-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950';
+    'font-medium rounded-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-ring-offset';
 
   // Variantes de color
   const variantStyles = {
     primary:
-      'bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 text-white hover:shadow-[0_25px_60px_rgba(56,189,248,0.3)] focus:ring-sky-400',
+      'bg-gradient-to-r from-accent-1 via-accent-2 to-accent-3 text-white hover:shadow-hover-accent focus:ring-ring',
     secondary:
-      'bg-slate-800 text-slate-100 border border-slate-700 hover:bg-slate-700 hover:border-slate-600 focus:ring-slate-500',
+      'bg-bg-tertiary text-text-primary border border-border-secondary hover:bg-bg-hover hover:border-border-hover focus:ring-ring',
     danger:
-      'bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:shadow-[0_25px_60px_rgba(244,63,94,0.3)] focus:ring-rose-400',
+      'bg-gradient-to-r from-danger-1 to-danger-2 text-white hover:shadow-[0_25px_60px_rgba(var(--color-danger-1),0.3)] focus:ring-ring',
   };
 
   // Tamaños

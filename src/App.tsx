@@ -34,11 +34,11 @@ const NotFoundPage = () => {
     <Layout showNavbar={false}>
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-6xl font-bold text-slate-100 mb-4">404</h1>
-          <p className="text-xl text-slate-400 mb-6">Página no encontrada</p>
+          <h1 className="text-6xl font-bold text-text-primary mb-4">404</h1>
+          <p className="text-xl text-text-disabled mb-6">Página no encontrada</p>
           <a
             href="/"
-            className="text-sky-400 hover:text-sky-300 transition-colors"
+            className="text-accent-1 hover:text-accent-2 transition-colors"
           >
             Volver al inicio
           </a>

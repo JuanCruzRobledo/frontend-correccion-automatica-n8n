@@ -262,15 +262,15 @@ export const UserView = () => {
       >
         <div className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-text-tertiary mb-2">
               Archivo del Alumno
             </label>
             <input
               type="file"
               onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
-              className="block w-full cursor-pointer rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2.5 text-xs text-slate-100 shadow-inner transition focus:border-sky-400/70 focus:outline-none focus:ring-2 focus:ring-sky-500/40 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-sky-400 file:to-indigo-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-950 hover:file:brightness-110 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm file:sm:mr-4 file:sm:rounded-xl file:sm:px-4 file:sm:py-2 file:sm:text-sm"
+              className="block w-full cursor-pointer rounded-xl border border-border-primary/60 bg-bg-tertiary/60 px-3 py-2.5 text-xs text-text-primary shadow-inner transition focus:border-ring/70 focus:outline-none focus:ring-2 focus:ring-ring/40 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-accent-1 file:to-accent-2 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:brightness-110 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm file:sm:mr-4 file:sm:rounded-xl file:sm:px-4 file:sm:py-2 file:sm:text-sm"
             />
-            <p className="mt-1.5 text-xs text-slate-400 sm:text-sm">
+            <p className="mt-1.5 text-xs text-text-tertiary sm:text-sm">
               Sube el archivo que deseas corregir (código, PDF, documento, etc.)
             </p>
           </div>
@@ -280,8 +280,8 @@ export const UserView = () => {
           </Button>
 
           {gradingError && (
-            <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100 shadow-inner">
-              <strong className="block text-rose-100">{gradingError}</strong>
+            <div className="rounded-2xl border border-danger-1/40 bg-danger-1/10 p-4 text-sm text-danger-1 shadow-inner">
+              <strong className="block text-danger-1">{gradingError}</strong>
             </div>
           )}
         </div>
@@ -294,8 +294,8 @@ export const UserView = () => {
           hover
           hoverColor="indigo"
         >
-          <div className="max-h-[300px] max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-slate-800/60 bg-slate-950/70 p-3 shadow-inner sm:max-h-[450px] sm:rounded-2xl sm:p-4 lg:max-h-[520px] lg:p-5">
-            <pre className="text-xs leading-relaxed text-slate-200 sm:text-sm whitespace-pre-wrap">
+          <div className="max-h-[300px] max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-border-primary/60 bg-bg-tertiary/70 p-3 shadow-inner sm:max-h-[450px] sm:rounded-2xl sm:p-4 lg:max-h-[520px] lg:p-5">
+            <pre className="text-xs leading-relaxed text-text-secondary sm:text-sm whitespace-pre-wrap">
               {gradingResult}
             </pre>
           </div>
@@ -342,38 +342,38 @@ export const UserView = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-text-tertiary mb-2">
               Resumen por Criterios
             </label>
             <textarea
               rows={4}
               value={summaryByCriteria}
               onChange={(e) => setSummaryByCriteria(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70"
+              className="w-full px-4 py-2.5 bg-bg-tertiary border border-border-primary/60 rounded-2xl text-text-primary placeholder-text-placeholder focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/70"
               placeholder="Se completa automáticamente desde el resultado..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Fortalezas</label>
+            <label className="block text-sm font-medium text-text-tertiary mb-2">Fortalezas</label>
             <textarea
               rows={3}
               value={strengths}
               onChange={(e) => setStrengths(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70"
+              className="w-full px-4 py-2.5 bg-bg-tertiary border border-border-primary/60 rounded-2xl text-text-primary placeholder-text-placeholder focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/70"
               placeholder="Se completa automáticamente desde el resultado..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-text-tertiary mb-2">
               Recomendaciones
             </label>
             <textarea
               rows={3}
               value={recommendations}
               onChange={(e) => setRecommendations(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70"
+              className="w-full px-4 py-2.5 bg-bg-tertiary border border-border-primary/60 rounded-2xl text-text-primary placeholder-text-placeholder focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring/70"
               placeholder="Se completa automáticamente desde el resultado..."
             />
           </div>

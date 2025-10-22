@@ -68,7 +68,7 @@ export const Modal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-bg-primary/80 backdrop-blur-sm"
         onClick={onClose}
       ></div>
 
@@ -76,18 +76,18 @@ export const Modal = ({
       <div
         className={`
           relative w-full ${sizeClasses[size]}
-          bg-slate-900 border border-slate-800/60
+          bg-bg-elevated border border-border-primary/60
           rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]
           max-h-[90vh] overflow-y-auto
           motion-safe:animate-[slideUp_0.3s_ease-out]
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-800/60">
-          <h3 className="text-xl font-semibold text-slate-100">{title}</h3>
+        <div className="flex items-center justify-between p-6 border-b border-border-primary/60">
+          <h3 className="text-xl font-semibold text-text-primary">{title}</h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-100 transition-colors"
+            className="text-text-disabled hover:text-text-primary transition-colors"
           >
             <svg
               className="w-6 h-6"
@@ -110,7 +110,7 @@ export const Modal = ({
 
         {/* Footer */}
         {showFooter && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-800/60">
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-border-primary/60">
             <Button variant="secondary" onClick={onClose}>
               {cancelText}
             </Button>

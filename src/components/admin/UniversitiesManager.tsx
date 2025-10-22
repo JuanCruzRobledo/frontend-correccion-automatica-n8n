@@ -178,22 +178,22 @@ export const UniversitiesManager = () => {
   return (
     <Card title="Gestión de Universidades">
       <div className="mb-4 flex justify-between items-center">
-        <p className="text-slate-400 text-sm">
+        <p className="text-text-disabled text-sm">
           {universities.length} universidades registradas
         </p>
         <Button onClick={handleCreate}>+ Crear Universidad</Button>
       </div>
 
       {error && (
-        <div className="mb-4 bg-rose-500/10 border border-rose-500/50 rounded-xl p-3">
-          <p className="text-rose-400 text-sm">{error}</p>
+        <div className="mb-4 bg-danger-1/10 border border-danger-1/50 rounded-xl p-3">
+          <p className="text-danger-1 text-sm">{error}</p>
         </div>
       )}
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-400"></div>
-          <p className="text-slate-400 mt-2">Cargando...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-1"></div>
+          <p className="text-text-disabled mt-2">Cargando...</p>
         </div>
       ) : (
         <Table data={universities} columns={columns} emptyMessage="No hay universidades registradas" />
@@ -235,18 +235,18 @@ export const UniversitiesManager = () => {
             {modalMode === 'create' && formData.university_id && (
               <>
                 {checkingDuplicate && (
-                  <div className="mt-2 p-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-                    <p className="text-xs text-slate-400">Verificando disponibilidad...</p>
+                  <div className="mt-2 p-2 bg-bg-tertiary/50 border border-border-secondary/50 rounded-lg">
+                    <p className="text-xs text-text-tertiary">Verificando disponibilidad...</p>
                   </div>
                 )}
                 {!checkingDuplicate && isDuplicate && (
-                  <div className="mt-2 p-2 bg-rose-500/10 border border-rose-500/50 rounded-lg">
-                    <p className="text-xs text-rose-400">⚠️ Este ID ya está en uso</p>
+                  <div className="mt-2 p-2 bg-danger-1/10 border border-danger-1/50 rounded-lg">
+                    <p className="text-xs text-danger-1">⚠️ Este ID ya está en uso</p>
                   </div>
                 )}
                 {!checkingDuplicate && !isDuplicate && formData.university_id.length >= 3 && (
-                  <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/50 rounded-lg">
-                    <p className="text-xs text-emerald-400">✓ ID disponible</p>
+                  <div className="mt-2 p-2 bg-accent-1/10 border border-accent-1/50 rounded-lg">
+                    <p className="text-xs text-accent-1">✓ ID disponible</p>
                   </div>
                 )}
               </>
@@ -254,11 +254,11 @@ export const UniversitiesManager = () => {
 
             {/* Sugerencia de ID */}
             {modalMode === 'create' && suggestedId && suggestedId !== formData.university_id && (
-              <div className="mt-2 p-3 bg-sky-500/10 border border-sky-500/30 rounded-lg">
+              <div className="mt-2 p-3 bg-accent-1/10 border border-accent-1/30 rounded-lg">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1">
-                    <p className="text-xs text-slate-400 mb-1">ID sugerido:</p>
-                    <code className="text-sm text-sky-300 font-mono">{suggestedId}</code>
+                    <p className="text-xs text-text-tertiary mb-1">ID sugerido:</p>
+                    <code className="text-sm text-accent-1 font-mono">{suggestedId}</code>
                   </div>
                   <Button
                     size="sm"

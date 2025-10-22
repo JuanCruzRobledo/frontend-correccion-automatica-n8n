@@ -35,7 +35,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-bg-primary flex items-center justify-center p-4">
       {/* Aurora Background */}
       <div className="backdrop-aurora pointer-events-none">
         <div className="aurora-1"></div>
@@ -46,7 +46,7 @@ export const Login = () => {
       <div className="relative z-10 w-full max-w-md">
         <Card>
           <div className="text-center mb-8">
-            <div className="inline-block w-16 h-16 rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 flex items-center justify-center mb-4">
+            <div className="inline-block w-16 h-16 rounded-full bg-gradient-to-r from-accent-1 via-accent-2 to-accent-3 flex items-center justify-center mb-4">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -61,8 +61,8 @@ export const Login = () => {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-slate-100">Sistema de Corrección Automática</h1>
-            <p className="text-slate-400 mt-2">Inicia sesión para continuar</p>
+            <h1 className="text-2xl font-bold text-text-primary">Sistema de Corrección Automática</h1>
+            <p className="text-text-tertiary mt-2">Inicia sesión para continuar</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,8 +87,8 @@ export const Login = () => {
             />
 
             {error && (
-              <div className="bg-rose-500/10 border border-rose-500/50 rounded-xl p-3">
-                <p className="text-rose-400 text-sm">{error}</p>
+              <div className="bg-danger-1/10 border border-danger-1/50 rounded-xl p-3">
+                <p className="text-danger-1 text-sm">{error}</p>
               </div>
             )}
 
@@ -97,13 +97,13 @@ export const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-800/60">
-            <p className="text-sm text-slate-400 text-center">
+          <div className="mt-6 pt-6 border-t border-border-primary/60">
+            <p className="text-sm text-text-tertiary text-center">
               Usuarios de prueba:
             </p>
-            <div className="mt-2 space-y-1 text-xs text-slate-500 text-center">
-              <p>Admin: <code className="text-sky-400">admin / admin123</code></p>
-              <p>Usuario: <code className="text-sky-400">usuario / usuario123</code></p>
+            <div className="mt-2 space-y-1 text-xs text-text-disabled text-center">
+              <p>Admin: <code className="text-accent-1">admin / admin123</code></p>
+              <p>Usuario: <code className="text-accent-1">usuario / usuario123</code></p>
             </div>
           </div>
         </Card>

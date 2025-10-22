@@ -22,7 +22,7 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
   };
 
   return (
-    <div className="relative w-full h-full bg-slate-950 text-slate-100">
+    <div className="relative w-full h-full bg-bg-primary text-text-primary">
       {/* Aurora Background - Fixed */}
       <div className="backdrop-aurora pointer-events-none fixed inset-0">
         <div className="aurora-1"></div>
@@ -31,12 +31,12 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
 
       {/* Navbar */}
       {showNavbar && isAuthenticated && (
-        <nav className="relative z-50 border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-sm sticky top-0">
+        <nav className="relative z-50 border-b border-border-primary/60 bg-bg-secondary/50 backdrop-blur-sm sticky top-0">
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between py-3 sm:py-0 sm:h-16 gap-3 sm:gap-0">
               {/* Logo */}
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-accent-1 via-accent-2 to-accent-3 flex items-center justify-center flex-shrink-0">
                   <svg
                     className="w-5 h-5 sm:w-6 sm:h-6 text-white"
                     fill="none"
@@ -52,8 +52,8 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                   </svg>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-sm sm:text-lg font-semibold truncate">Sistema de Corrección Automática</h1>
-                  <p className="text-xs text-slate-400 hidden sm:block">
+                  <h1 className="text-sm sm:text-lg font-semibold truncate text-text-primary">Sistema de Corrección Automática</h1>
+                  <p className="text-xs text-text-tertiary hidden sm:block">
                     {user?.role === 'admin' ? 'Panel de Administración' : 'Vista de Usuario'}
                   </p>
                 </div>
@@ -86,8 +86,8 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
 
                 <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                   <div className="text-left sm:text-right">
-                    <p className="text-xs sm:text-sm font-medium truncate">{user?.username}</p>
-                    <p className="text-xs text-slate-400 capitalize">{user?.role}</p>
+                    <p className="text-xs sm:text-sm font-medium truncate text-text-primary">{user?.username}</p>
+                    <p className="text-xs text-text-tertiary capitalize">{user?.role}</p>
                   </div>
                   <Button variant="secondary" size="sm" onClick={handleLogout} className="flex-shrink-0">
                     <span className="sm:hidden">Salir</span>

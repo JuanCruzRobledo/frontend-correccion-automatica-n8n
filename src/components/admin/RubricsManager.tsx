@@ -327,10 +327,10 @@ export const RubricsManager = () => {
         <span
           className={`px-2 py-1 rounded text-xs ${
             row.source === 'pdf'
-              ? 'bg-rose-500/20 text-rose-300'
+              ? 'bg-danger-1/20 text-danger-1'
               : row.source === 'json'
-              ? 'bg-sky-500/20 text-sky-300'
-              : 'bg-slate-500/20 text-slate-300'
+              ? 'bg-accent-1/20 text-accent-1'
+              : 'bg-bg-tertiary/20 text-text-tertiary'
           }`}
         >
           {row.source.toUpperCase()}
@@ -374,7 +374,7 @@ export const RubricsManager = () => {
     <Card title="Gestión de Rúbricas">
       <div className="mb-4 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <p className="text-slate-400 text-sm">{rubrics.length} rúbricas registradas</p>
+          <p className="text-text-disabled text-sm">{rubrics.length} rúbricas registradas</p>
 
           <div className="flex gap-2">
             <Button onClick={handleCreateFromJSON}>+ Desde JSON</Button>
@@ -411,15 +411,15 @@ export const RubricsManager = () => {
       </div>
 
       {error && (
-        <div className="mb-4 bg-rose-500/10 border border-rose-500/50 rounded-xl p-3">
-          <p className="text-rose-400 text-sm">{error}</p>
+        <div className="mb-4 bg-danger-1/10 border border-danger-1/50 rounded-xl p-3">
+          <p className="text-danger-1 text-sm">{error}</p>
         </div>
       )}
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-400"></div>
-          <p className="text-slate-400 mt-2">Cargando...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-1"></div>
+          <p className="text-text-disabled mt-2">Cargando...</p>
         </div>
       ) : (
         <Table
@@ -490,7 +490,7 @@ export const RubricsManager = () => {
 
           {modalMode === 'create-pdf' && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-text-tertiary mb-2">
                 Archivo PDF
               </label>
               <div className="space-y-3">
@@ -501,10 +501,10 @@ export const RubricsManager = () => {
                     const file = e.target.files?.[0] || null;
                     setFormData({ ...formData, pdf_file: file });
                   }}
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-400 file:text-white hover:file:bg-sky-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-bg-tertiary border border-border-primary/60 rounded-2xl text-text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-accent-1 file:to-accent-2 file:text-white hover:file:from-accent-2 hover:file:to-accent-3 transition-all"
                 />
                 {formErrors.pdf_file && (
-                  <p className="mt-1.5 text-sm text-rose-400">{formErrors.pdf_file}</p>
+                  <p className="mt-1.5 text-sm text-danger-1">{formErrors.pdf_file}</p>
                 )}
 
                 <Button
@@ -516,7 +516,7 @@ export const RubricsManager = () => {
                   {generatingFromPDF ? '⏳ Generando JSON desde PDF...' : '🚀 Generar JSON desde PDF'}
                 </Button>
 
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-text-tertiary">
                   1. Selecciona un PDF<br />
                   2. Haz clic en "Generar JSON desde PDF"<br />
                   3. Revisa/edita el JSON generado abajo<br />
@@ -528,10 +528,10 @@ export const RubricsManager = () => {
 
           {(modalMode === 'create-json' || modalMode === 'create-pdf' || modalMode === 'edit' || modalMode === 'view') && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-text-tertiary mb-2">
                 JSON de la Rúbrica
                 {modalMode === 'create-pdf' && !formData.rubric_json && (
-                  <span className="ml-2 text-xs text-amber-400">(Se generará al procesar el PDF)</span>
+                  <span className="ml-2 text-xs text-text-tertiary">(Se generará al procesar el PDF)</span>
                 )}
               </label>
               <textarea
@@ -539,18 +539,18 @@ export const RubricsManager = () => {
                 value={formData.rubric_json}
                 onChange={(e) => setFormData({ ...formData, rubric_json: e.target.value })}
                 disabled={modalMode === 'view'}
-                className={`w-full px-4 py-2.5 bg-slate-950 border ${
-                  formErrors.rubric_json ? 'border-rose-500' : 'border-slate-800/60'
-                } rounded-2xl text-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70 disabled:opacity-40`}
+                className={`w-full px-4 py-2.5 bg-bg-tertiary border ${
+                  formErrors.rubric_json ? 'border-danger-1' : 'border-border-primary/60'
+                } rounded-2xl text-text-primary font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-accent-1/70 disabled:opacity-40`}
                 placeholder={modalMode === 'create-pdf'
                   ? 'El JSON se generará automáticamente al procesar el PDF...'
                   : '{"rubric_id": "...", "title": "...", ...}'}
               />
               {formErrors.rubric_json && (
-                <p className="mt-1.5 text-sm text-rose-400">{formErrors.rubric_json}</p>
+                <p className="mt-1.5 text-sm text-danger-1">{formErrors.rubric_json}</p>
               )}
               {modalMode === 'create-pdf' && formData.rubric_json && (
-                <p className="mt-1.5 text-sm text-emerald-400">
+                <p className="mt-1.5 text-sm text-accent-1">
                   ✅ JSON generado correctamente. Puedes editarlo antes de guardar.
                 </p>
               )}

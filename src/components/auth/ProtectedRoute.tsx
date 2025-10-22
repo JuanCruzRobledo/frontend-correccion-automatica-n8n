@@ -17,10 +17,10 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
   // Mientras carga, mostrar spinner
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
           <svg
-            className="animate-spin h-12 w-12 text-sky-400 mx-auto mb-4"
+            className="animate-spin h-12 w-12 text-accent-1 mx-auto mb-4"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -39,7 +39,7 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <p className="text-slate-400">Cargando...</p>
+          <p className="text-text-tertiary">Cargando...</p>
         </div>
       </div>
     );

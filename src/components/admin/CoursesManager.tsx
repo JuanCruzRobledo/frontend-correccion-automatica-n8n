@@ -239,9 +239,9 @@ export const CoursesManager = () => {
       <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           {filterUniversityId ? (
-            <p className="text-slate-400 text-sm">{courses.length} cursos registrados</p>
+            <p className="text-text-disabled text-sm">{courses.length} cursos registrados</p>
           ) : (
-            <p className="text-slate-400 text-sm">Selecciona una universidad para ver sus cursos</p>
+            <p className="text-text-disabled text-sm">Selecciona una universidad para ver sus cursos</p>
           )}
         </div>
 
@@ -272,16 +272,16 @@ export const CoursesManager = () => {
       </div>
 
       {error && (
-        <div className="mb-4 bg-rose-500/10 border border-rose-500/50 rounded-xl p-3">
-          <p className="text-rose-400 text-sm">{error}</p>
+        <div className="mb-4 bg-danger-1/10 border border-danger-1/50 rounded-xl p-3">
+          <p className="text-danger-1 text-sm">{error}</p>
         </div>
       )}
 
       {!filterUniversityId ? (
-        <div className="text-center py-16 bg-slate-900/30 rounded-xl border border-slate-800/40">
+        <div className="text-center py-16 bg-bg-secondary/30 rounded-xl border border-border-primary/40">
           <div className="mb-4">
             <svg
-              className="w-16 h-16 mx-auto text-slate-600"
+              className="w-16 h-16 mx-auto text-text-disabled"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -294,17 +294,17 @@ export const CoursesManager = () => {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-slate-300 mb-2">
+          <h3 className="text-lg font-medium text-text-secondary mb-2">
             Selecciona una universidad
           </h3>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-text-tertiary">
             Usa el selector de arriba para ver los cursos de una universidad específica
           </p>
         </div>
       ) : loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-400"></div>
-          <p className="text-slate-400 mt-2">Cargando...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-1"></div>
+          <p className="text-text-disabled mt-2">Cargando...</p>
         </div>
       ) : (
         <Table
@@ -368,18 +368,18 @@ export const CoursesManager = () => {
             {modalMode === 'create' && formData.course_id && (
               <>
                 {checkingDuplicate && (
-                  <div className="mt-2 p-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-                    <p className="text-xs text-slate-400">Verificando disponibilidad...</p>
+                  <div className="mt-2 p-2 bg-bg-tertiary/50 border border-border-secondary/50 rounded-lg">
+                    <p className="text-xs text-text-tertiary">Verificando disponibilidad...</p>
                   </div>
                 )}
                 {!checkingDuplicate && isDuplicate && (
-                  <div className="mt-2 p-2 bg-rose-500/10 border border-rose-500/50 rounded-lg">
-                    <p className="text-xs text-rose-400">⚠️ Este ID ya está en uso</p>
+                  <div className="mt-2 p-2 bg-danger-1/10 border border-danger-1/50 rounded-lg">
+                    <p className="text-xs text-danger-1">⚠️ Este ID ya está en uso</p>
                   </div>
                 )}
                 {!checkingDuplicate && !isDuplicate && formData.course_id.length >= 3 && (
-                  <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/50 rounded-lg">
-                    <p className="text-xs text-emerald-400">✓ ID disponible</p>
+                  <div className="mt-2 p-2 bg-accent-1/10 border border-accent-1/50 rounded-lg">
+                    <p className="text-xs text-accent-1">✓ ID disponible</p>
                   </div>
                 )}
               </>
@@ -387,11 +387,11 @@ export const CoursesManager = () => {
 
             {/* Sugerencia de ID */}
             {modalMode === 'create' && suggestedId && suggestedId !== formData.course_id && (
-              <div className="mt-2 p-3 bg-sky-500/10 border border-sky-500/30 rounded-lg">
+              <div className="mt-2 p-3 bg-accent-1/10 border border-accent-1/30 rounded-lg">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1">
-                    <p className="text-xs text-slate-400 mb-1">ID sugerido:</p>
-                    <code className="text-sm text-sky-300 font-mono">{suggestedId}</code>
+                    <p className="text-xs text-text-tertiary mb-1">ID sugerido:</p>
+                    <code className="text-sm text-accent-1 font-mono">{suggestedId}</code>
                   </div>
                   <Button
                     size="sm"

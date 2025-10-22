@@ -184,8 +184,8 @@ export const UsersManager = () => {
         <span
           className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
             row.role === 'admin'
-              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-              : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+              ? 'bg-accent-3/20 text-accent-3 border border-accent-3/30'
+              : 'bg-accent-1/20 text-accent-1 border border-accent-1/30'
           }`}
         >
           {row.role === 'admin' ? '👨‍💼 Admin' : '👤 Usuario'}
@@ -198,8 +198,8 @@ export const UsersManager = () => {
         <span
           className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
             row.deleted
-              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+              ? 'bg-danger-1/20 text-danger-1 border border-danger-1/30'
+              : 'bg-accent-1/20 text-accent-1 border border-accent-1/30'
           }`}
         >
           {row.deleted ? '🚫 Eliminado' : '✅ Activo'}
@@ -242,7 +242,7 @@ export const UsersManager = () => {
     <Card title="Gestión de Usuarios">
       <div className="mb-4 flex justify-between items-center flex-wrap gap-3">
         <div className="flex items-center gap-4">
-          <p className="text-slate-400 text-sm">
+          <p className="text-text-disabled text-sm">
             {users.length} usuario{users.length !== 1 ? 's' : ''} {showDeleted ? 'en total' : 'activos'}
           </p>
 
@@ -252,9 +252,9 @@ export const UsersManager = () => {
               type="checkbox"
               checked={showDeleted}
               onChange={(e) => setShowDeleted(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500 focus:ring-offset-slate-900 cursor-pointer"
+              className="w-4 h-4 rounded border-border-secondary bg-bg-tertiary text-accent-1 focus:ring-accent-1 focus:ring-offset-bg-primary cursor-pointer"
             />
-            <span className="text-sm text-slate-300">Mostrar eliminados</span>
+            <span className="text-sm text-text-tertiary">Mostrar eliminados</span>
           </label>
         </div>
 
@@ -262,15 +262,15 @@ export const UsersManager = () => {
       </div>
 
       {error && (
-        <div className="mb-4 bg-rose-500/10 border border-rose-500/50 rounded-xl p-3">
-          <p className="text-rose-400 text-sm">{error}</p>
+        <div className="mb-4 bg-danger-1/10 border border-danger-1/50 rounded-xl p-3">
+          <p className="text-danger-1 text-sm">{error}</p>
         </div>
       )}
 
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-400"></div>
-          <p className="text-slate-400 mt-2">Cargando...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-1"></div>
+          <p className="text-text-disabled mt-2">Cargando...</p>
         </div>
       ) : (
         <Table data={users} columns={columns} emptyMessage="No hay usuarios registrados" />
@@ -322,8 +322,8 @@ export const UsersManager = () => {
           />
 
           {selectedUser?.username === 'admin' && (
-            <div className="bg-amber-500/10 border border-amber-500/50 rounded-xl p-3">
-              <p className="text-amber-300 text-sm">
+            <div className="bg-accent-2/10 border border-accent-2/50 rounded-xl p-3">
+              <p className="text-text-tertiary text-sm">
                 ⚠️ El administrador principal no puede cambiar su username ni rol
               </p>
             </div>

@@ -32,13 +32,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ) => {
     const selectStyles = `
       w-full px-4 py-2.5
-      bg-slate-950
-      border ${error ? 'border-rose-500' : 'border-slate-800/60'}
+      bg-bg-tertiary
+      border ${error ? 'border-danger-1' : 'border-border-primary/60'}
       rounded-2xl
-      text-slate-100
+      text-text-primary
       focus:outline-none
       focus:ring-2
-      ${error ? 'focus:ring-rose-400/40 focus:border-rose-400/70' : 'focus:ring-sky-400/40 focus:border-sky-400/70'}
+      ${error ? 'focus:ring-danger-1/40 focus:border-danger-1/70' : 'focus:ring-ring/40 focus:border-ring/70'}
       disabled:opacity-40
       disabled:cursor-not-allowed
       transition-all duration-200
@@ -48,7 +48,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-text-tertiary mb-2">
             {label}
           </label>
         )}
@@ -63,7 +63,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </select>
 
         {error && (
-          <p className="mt-1.5 text-sm text-rose-400 flex items-center gap-1">
+          <p className="mt-1.5 text-sm text-danger-1 flex items-center gap-1">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
@@ -76,7 +76,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         )}
 
         {helperText && !error && (
-          <p className="mt-1.5 text-sm text-slate-400">{helperText}</p>
+          <p className="mt-1.5 text-sm text-text-tertiary">{helperText}</p>
         )}
       </div>
     );
