@@ -1,0 +1,394 @@
+/**
+ * UserView - Vista simplificada para usuarios normales
+ * Permite seleccionar universidad, curso, rúbrica y corregir archivos
+ */
+import { useState, useEffect } from 'react';
+import { Card } from '../shared/Card';
+import { Select } from '../shared/Select';
+import { Input } from '../shared/Input';
+import { Button } from '../shared/Button';
+import universityService from '../../services/universityService';
+import courseService from '../../services/courseService';
+import rubricService from '../../services/rubricService';
+import type { University, Course, Rubric } from '../../types';
+import axios from 'axios';
+
+export const UserView = () => {
+  // Datos de catálogos
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [rubrics, setRubrics] = useState<Rubric[]>([]);
+
+  // Selecciones
+  const [selectedUniversityId, setSelectedUniversityId] = useState('');
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [selectedRubricId, setSelectedRubricId] = useState('');
+
+  // Archivo a corregir
+  const [submissionFile, setSubmissionFile] = useState<File | null>(null);
+
+  // Resultado de la corrección
+  const [gradingResult, setGradingResult] = useState('');
+  const [gradingError, setGradingError] = useState('');
+  const [isGrading, setIsGrading] = useState(false);
+
+  // Datos para subir a planilla
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+  const [sheetName, setSheetName] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [grade, setGrade] = useState('');
+  const [summaryByCriteria, setSummaryByCriteria] = useState('');
+  const [strengths, setStrengths] = useState('');
+  const [recommendations, setRecommendations] = useState('');
+  const [isUploadingToSheet, setIsUploadingToSheet] = useState(false);
+
+  // Cargar universidades al montar
+  useEffect(() => {
+    loadUniversities();
+  }, []);
+
+  // Cargar cursos cuando cambia la universidad
+  useEffect(() => {
+    if (selectedUniversityId) {
+      loadCourses(selectedUniversityId);
+    } else {
+      setCourses([]);
+    }
+    setSelectedCourseId('');
+    setSelectedRubricId('');
+  }, [selectedUniversityId]);
+
+  // Cargar rúbricas cuando cambia el curso
+  useEffect(() => {
+    if (selectedUniversityId && selectedCourseId) {
+      loadRubrics(selectedUniversityId, selectedCourseId);
+    } else {
+      setRubrics([]);
+    }
+    setSelectedRubricId('');
+  }, [selectedCourseId]);
+
+  const loadUniversities = async () => {
+    try {
+      const data = await universityService.getUniversities();
+      setUniversities(data);
+    } catch (err) {
+      console.error('Error al cargar universidades:', err);
+    }
+  };
+
+  const loadCourses = async (universityId: string) => {
+    try {
+      const data = await courseService.getCourses(universityId);
+      setCourses(data);
+    } catch (err) {
+      console.error('Error al cargar cursos:', err);
+    }
+  };
+
+  const loadRubrics = async (universityId: string, courseId: string) => {
+    try {
+      const data = await rubricService.getRubrics(universityId, courseId);
+      setRubrics(data);
+    } catch (err) {
+      console.error('Error al cargar rúbricas:', err);
+    }
+  };
+
+  const handleGrade = async () => {
+    if (!selectedRubricId || !submissionFile) {
+      alert('Por favor selecciona una rúbrica y un archivo a corregir');
+      return;
+    }
+
+    try {
+      setIsGrading(true);
+      setGradingError('');
+      setGradingResult('');
+
+      // Obtener la rúbrica seleccionada
+      const rubric = rubrics.find((r) => r._id === selectedRubricId);
+      if (!rubric) {
+        throw new Error('Rúbrica no encontrada');
+      }
+
+      // Preparar FormData
+      const formData = new FormData();
+
+      // Crear archivo JSON temporal con la rúbrica
+      const rubricBlob = new Blob([JSON.stringify(rubric.rubric_json)], {
+        type: 'application/json',
+      });
+      formData.append('rubric', rubricBlob, 'rubric.json');
+
+      // Agregar archivo a corregir
+      formData.append('submission', submissionFile);
+
+      // Llamar al webhook de n8n (directamente o a través del backend)
+      const webhookUrl =
+        import.meta.env.VITE_GRADING_WEBHOOK_URL ||
+        'https://tu-servidor.n8n.example/webhook/grading';
+
+      const response = await axios.post(webhookUrl, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      // Extraer resultado
+      const result =
+        typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+
+      setGradingResult(result);
+
+      // Intentar parsear secciones para auto-llenar planilla
+      parseGradingSections(result);
+    } catch (err: unknown) {
+      setGradingError(
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : 'Error al corregir el archivo'
+      );
+    } finally {
+      setIsGrading(false);
+    }
+  };
+
+  const parseGradingSections = (text: string) => {
+    // Intentar extraer nota
+    const gradeMatch = text.match(/Tu nota final es\s*([^\.\n]+)(?:\.|$)/i);
+    if (gradeMatch) {
+      setGrade(gradeMatch[1].trim());
+    }
+
+    // Intentar extraer resumen por criterios
+    const summaryMatch = text.match(/📌 Resumen por criterios([\s\S]*?)(?:💡 Fortalezas|$)/i);
+    if (summaryMatch) {
+      setSummaryByCriteria(summaryMatch[1].trim());
+    }
+
+    // Intentar extraer fortalezas
+    const strengthsMatch = text.match(/💡 Fortalezas detectadas([\s\S]*?)(?:🛠️ Recomendaciones|$)/i);
+    if (strengthsMatch) {
+      setStrengths(strengthsMatch[1].trim());
+    }
+
+    // Intentar extraer recomendaciones
+    const recommendationsMatch = text.match(/🛠️ Recomendaciones([\s\S]*?)$/i);
+    if (recommendationsMatch) {
+      setRecommendations(recommendationsMatch[1].trim());
+    }
+  };
+
+  const handleUploadToSpreadsheet = async () => {
+    if (!spreadsheetUrl || !sheetName || !studentName || !grade) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    try {
+      setIsUploadingToSheet(true);
+
+      const webhookUrl =
+        import.meta.env.VITE_SPREADSHEET_WEBHOOK_URL ||
+        'https://tu-servidor.n8n.example/webhook/spreadsheet';
+
+      const data = {
+        spreadsheet_url: spreadsheetUrl,
+        sheet_name: sheetName,
+        alumno: studentName,
+        nota: grade,
+        resumen_por_criterios: summaryByCriteria,
+        fortalezas: strengths,
+        recomendaciones: recommendations,
+      };
+
+      await axios.post(webhookUrl, data);
+
+      alert('Datos subidos exitosamente a la planilla');
+    } catch (err: unknown) {
+      alert(
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : 'Error al subir a la planilla'
+      );
+    } finally {
+      setIsUploadingToSheet(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 sm:space-y-8">
+      {/* Sección 1: Contexto Académico */}
+      <Card
+        title="Contexto Académico"
+        stepNumber="1"
+        hover
+        hoverColor="amber"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Select
+            label="Universidad"
+            options={universities.map((u) => ({ value: u.university_id, label: u.name }))}
+            value={selectedUniversityId}
+            onChange={(e) => setSelectedUniversityId(e.target.value)}
+            placeholder="Selecciona universidad"
+          />
+
+          <Select
+            label="Materia"
+            options={courses.map((c) => ({ value: c.course_id, label: c.name }))}
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value)}
+            placeholder="Selecciona materia"
+            disabled={!selectedUniversityId}
+          />
+
+          <Select
+            label="Rúbrica"
+            options={rubrics.map((r) => ({ value: r._id, label: r.name }))}
+            value={selectedRubricId}
+            onChange={(e) => setSelectedRubricId(e.target.value)}
+            placeholder="Selecciona rúbrica"
+            disabled={!selectedCourseId}
+          />
+        </div>
+      </Card>
+
+      {/* Sección 2: Subir Archivo a Corregir */}
+      <Card
+        title="Subir Archivo a Corregir"
+        stepNumber="2"
+        hover
+        hoverColor="sky"
+      >
+        <div className="space-y-3 sm:space-y-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-2">
+              Archivo del Alumno
+            </label>
+            <input
+              type="file"
+              onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
+              className="block w-full cursor-pointer rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 py-2.5 text-xs text-slate-100 shadow-inner transition focus:border-sky-400/70 focus:outline-none focus:ring-2 focus:ring-sky-500/40 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-sky-400 file:to-indigo-500 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-950 hover:file:brightness-110 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm file:sm:mr-4 file:sm:rounded-xl file:sm:px-4 file:sm:py-2 file:sm:text-sm"
+            />
+            <p className="mt-1.5 text-xs text-slate-400 sm:text-sm">
+              Sube el archivo que deseas corregir (código, PDF, documento, etc.)
+            </p>
+          </div>
+
+          <Button onClick={handleGrade} loading={isGrading} disabled={!selectedRubricId || !submissionFile}>
+            {isGrading ? 'Corrigiendo…' : 'Corregir Archivo'}
+          </Button>
+
+          {gradingError && (
+            <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100 shadow-inner">
+              <strong className="block text-rose-100">{gradingError}</strong>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Resultado de la Corrección (solo si hay resultado) */}
+      {gradingResult && (
+        <Card
+          title="Resultado de la Corrección"
+          hover
+          hoverColor="indigo"
+        >
+          <div className="max-h-[300px] max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-slate-800/60 bg-slate-950/70 p-3 shadow-inner sm:max-h-[450px] sm:rounded-2xl sm:p-4 lg:max-h-[520px] lg:p-5">
+            <pre className="text-xs leading-relaxed text-slate-200 sm:text-sm whitespace-pre-wrap">
+              {gradingResult}
+            </pre>
+          </div>
+        </Card>
+      )}
+
+      {/* Sección 3: Subir Resultados a Planilla */}
+      <Card
+        title="Subir Resultados a Planilla"
+        stepNumber="3"
+        hover
+        hoverColor="emerald"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="URL del Spreadsheet"
+              type="url"
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              value={spreadsheetUrl}
+              onChange={(e) => setSpreadsheetUrl(e.target.value)}
+            />
+
+            <Input
+              label="Nombre de la Hoja"
+              placeholder="Hoja1"
+              value={sheetName}
+              onChange={(e) => setSheetName(e.target.value)}
+            />
+
+            <Input
+              label="Alumno según Moodle"
+              placeholder="Apellido, Nombre"
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
+            />
+
+            <Input
+              label="Nota"
+              placeholder="85/100"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Resumen por Criterios
+            </label>
+            <textarea
+              rows={4}
+              value={summaryByCriteria}
+              onChange={(e) => setSummaryByCriteria(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70"
+              placeholder="Se completa automáticamente desde el resultado..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Fortalezas</label>
+            <textarea
+              rows={3}
+              value={strengths}
+              onChange={(e) => setStrengths(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70"
+              placeholder="Se completa automáticamente desde el resultado..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Recomendaciones
+            </label>
+            <textarea
+              rows={3}
+              value={recommendations}
+              onChange={(e) => setRecommendations(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70"
+              placeholder="Se completa automáticamente desde el resultado..."
+            />
+          </div>
+
+          <Button
+            onClick={handleUploadToSpreadsheet}
+            loading={isUploadingToSheet}
+            disabled={!spreadsheetUrl || !sheetName || !studentName || !grade}
+          >
+            Subir a Planilla
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default UserView;

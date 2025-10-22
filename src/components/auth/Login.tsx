@@ -1,0 +1,115 @@
+/**
+ * Componente de Login
+ * Permite a los usuarios autenticarse en el sistema
+ */
+import { useState, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { Input } from '../shared/Input';
+import { Button } from '../shared/Button';
+import { Card } from '../shared/Card';
+
+export const Login = () => {
+  const navigate = useNavigate();
+  const { login, loading } = useAuth();
+
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      await login({ username, password });
+      // Redirigir a home después del login exitoso
+      navigate('/');
+    } catch (err: unknown) {
+      setError(
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : 'Error al iniciar sesión'
+      );
+    }
+  };
+
+  return (
+    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      {/* Aurora Background */}
+      <div className="backdrop-aurora pointer-events-none">
+        <div className="aurora-1"></div>
+        <div className="aurora-2"></div>
+      </div>
+
+      {/* Login Card */}
+      <div className="relative z-10 w-full max-w-md">
+        <Card>
+          <div className="text-center mb-8">
+            <div className="inline-block w-16 h-16 rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-100">Sistema de Corrección Automática</h1>
+            <p className="text-slate-400 mt-2">Inicia sesión para continuar</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Usuario"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Ingresa tu usuario"
+              required
+              autoComplete="username"
+            />
+
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Ingresa tu contraseña"
+              required
+              autoComplete="current-password"
+            />
+
+            {error && (
+              <div className="bg-rose-500/10 border border-rose-500/50 rounded-xl p-3">
+                <p className="text-rose-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" loading={loading}>
+              Iniciar Sesión
+            </Button>
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-slate-800/60">
+            <p className="text-sm text-slate-400 text-center">
+              Usuarios de prueba:
+            </p>
+            <div className="mt-2 space-y-1 text-xs text-slate-500 text-center">
+              <p>Admin: <code className="text-sky-400">admin / admin123</code></p>
+              <p>Usuario: <code className="text-sky-400">usuario / usuario123</code></p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
