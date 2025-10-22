@@ -12,6 +12,7 @@ import { Card } from '../shared/Card';
 import rubricService from '../../services/rubricService';
 import universityService from '../../services/universityService';
 import courseService from '../../services/courseService';
+import n8nService from '../../services/n8nService';
 import type { Rubric, University, Course } from '../../types';
 
 export const RubricsManager = () => {
@@ -48,6 +49,7 @@ export const RubricsManager = () => {
     pdf_file: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [generatingFromPDF, setGeneratingFromPDF] = useState(false);
 
   // Cargar datos al montar
   useEffect(() => {
@@ -190,6 +192,50 @@ export const RubricsManager = () => {
     setSelectedRubric(null);
   };
 
+  /**
+   * Genera el JSON de la rúbrica desde el PDF usando n8n
+   * Este es el nuevo flujo: generar → mostrar → editar (opcional) → guardar
+   */
+  const handleGenerateJSONFromPDF = async () => {
+    // Validar campos requeridos antes de generar
+    const errors = {
+      name: '',
+      university_id: '',
+      course_id: '',
+      rubric_json: '',
+      pdf_file: '',
+    };
+
+    if (!formData.pdf_file) {
+      errors.pdf_file = 'Debes seleccionar un archivo PDF';
+      setFormErrors(errors);
+      return;
+    }
+
+    try {
+      setGeneratingFromPDF(true);
+      setFormErrors({ name: '', university_id: '', course_id: '', rubric_json: '', pdf_file: '' });
+
+      // Llamar directamente a n8n para generar el JSON
+      const rubricJsonObject = await n8nService.generateRubricFromPDF(formData.pdf_file);
+
+      // Formatear el JSON y mostrarlo en el textarea
+      const formattedJson = JSON.stringify(rubricJsonObject, null, 2);
+      setFormData({ ...formData, rubric_json: formattedJson });
+
+      alert('✅ JSON generado exitosamente. Revisa y edita si es necesario, luego presiona "Guardar".');
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'message' in err
+        ? String(err.message)
+        : 'Error al generar JSON desde PDF';
+
+      setFormErrors({ ...formErrors, pdf_file: errorMessage });
+      alert('❌ ' + errorMessage);
+    } finally {
+      setGeneratingFromPDF(false);
+    }
+  };
+
   const handleSubmit = async () => {
     // Validar
     const errors = {
@@ -204,9 +250,10 @@ export const RubricsManager = () => {
     if (!formData.university_id) errors.university_id = 'La universidad es requerida';
     if (!formData.course_id) errors.course_id = 'El curso es requerido';
 
-    if (modalMode === 'create-json' || modalMode === 'edit') {
+    // Para create-json, edit y create-pdf (ahora también requiere JSON)
+    if (modalMode === 'create-json' || modalMode === 'edit' || modalMode === 'create-pdf') {
       if (!formData.rubric_json.trim()) {
-        errors.rubric_json = 'El JSON de la rúbrica es requerido';
+        errors.rubric_json = 'El JSON de la rúbrica es requerido. Primero genera el JSON desde el PDF.';
       } else {
         try {
           JSON.parse(formData.rubric_json);
@@ -214,10 +261,6 @@ export const RubricsManager = () => {
           errors.rubric_json = 'El JSON no es válido';
         }
       }
-    }
-
-    if (modalMode === 'create-pdf' && !formData.pdf_file) {
-      errors.pdf_file = 'El archivo PDF es requerido';
     }
 
     if (Object.values(errors).some((e) => e)) {
@@ -228,19 +271,13 @@ export const RubricsManager = () => {
     try {
       setSubmitting(true);
 
-      if (modalMode === 'create-json') {
+      if (modalMode === 'create-json' || modalMode === 'create-pdf') {
+        // Ambos modos ahora usan el mismo endpoint (con JSON ya generado)
         await rubricService.createRubric({
           name: formData.name,
           university_id: formData.university_id,
           course_id: formData.course_id,
           rubric_json: JSON.parse(formData.rubric_json),
-        });
-      } else if (modalMode === 'create-pdf' && formData.pdf_file) {
-        await rubricService.createRubricFromPDF({
-          name: formData.name,
-          university_id: formData.university_id,
-          course_id: formData.course_id,
-          pdf: formData.pdf_file,
         });
       } else if (modalMode === 'edit' && selectedRubric) {
         await rubricService.updateRubric(selectedRubric._id, {
@@ -456,28 +493,46 @@ export const RubricsManager = () => {
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Archivo PDF
               </label>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setFormData({ ...formData, pdf_file: file });
-                }}
-                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-400 file:text-white hover:file:bg-sky-500 transition-all"
-              />
-              {formErrors.pdf_file && (
-                <p className="mt-1.5 text-sm text-rose-400">{formErrors.pdf_file}</p>
-              )}
-              <p className="mt-1.5 text-sm text-slate-400">
-                El PDF será procesado por n8n para generar la rúbrica automáticamente
-              </p>
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setFormData({ ...formData, pdf_file: file });
+                  }}
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800/60 rounded-2xl text-slate-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-400 file:text-white hover:file:bg-sky-500 transition-all"
+                />
+                {formErrors.pdf_file && (
+                  <p className="mt-1.5 text-sm text-rose-400">{formErrors.pdf_file}</p>
+                )}
+
+                <Button
+                  onClick={handleGenerateJSONFromPDF}
+                  disabled={!formData.pdf_file || generatingFromPDF}
+                  variant="primary"
+                  className="w-full"
+                >
+                  {generatingFromPDF ? '⏳ Generando JSON desde PDF...' : '🚀 Generar JSON desde PDF'}
+                </Button>
+
+                <p className="text-sm text-slate-400">
+                  1. Selecciona un PDF<br />
+                  2. Haz clic en "Generar JSON desde PDF"<br />
+                  3. Revisa/edita el JSON generado abajo<br />
+                  4. Haz clic en "Guardar" para persistir en la base de datos
+                </p>
+              </div>
             </div>
           )}
 
-          {(modalMode === 'create-json' || modalMode === 'edit' || modalMode === 'view') && (
+          {(modalMode === 'create-json' || modalMode === 'create-pdf' || modalMode === 'edit' || modalMode === 'view') && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 JSON de la Rúbrica
+                {modalMode === 'create-pdf' && !formData.rubric_json && (
+                  <span className="ml-2 text-xs text-amber-400">(Se generará al procesar el PDF)</span>
+                )}
               </label>
               <textarea
                 rows={15}
@@ -487,10 +542,17 @@ export const RubricsManager = () => {
                 className={`w-full px-4 py-2.5 bg-slate-950 border ${
                   formErrors.rubric_json ? 'border-rose-500' : 'border-slate-800/60'
                 } rounded-2xl text-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/40 focus:border-sky-400/70 disabled:opacity-40`}
-                placeholder='{"rubric_id": "...", "title": "...", ...}'
+                placeholder={modalMode === 'create-pdf'
+                  ? 'El JSON se generará automáticamente al procesar el PDF...'
+                  : '{"rubric_id": "...", "title": "...", ...}'}
               />
               {formErrors.rubric_json && (
                 <p className="mt-1.5 text-sm text-rose-400">{formErrors.rubric_json}</p>
+              )}
+              {modalMode === 'create-pdf' && formData.rubric_json && (
+                <p className="mt-1.5 text-sm text-emerald-400">
+                  ✅ JSON generado correctamente. Puedes editarlo antes de guardar.
+                </p>
               )}
             </div>
           )}
