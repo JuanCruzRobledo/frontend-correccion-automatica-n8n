@@ -2,7 +2,7 @@
  * UserView - Vista simplificada para usuarios normales
  * Permite seleccionar universidad, curso, rúbrica y corregir archivos
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '../shared/Card';
 import { Select } from '../shared/Select';
 import { Input } from '../shared/Input';
@@ -12,6 +12,7 @@ import courseService from '../../services/courseService';
 import rubricService from '../../services/rubricService';
 import type { University, Course, Rubric } from '../../types';
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
 
 export const UserView = () => {
   // Datos de catálogos
@@ -31,6 +32,7 @@ export const UserView = () => {
   const [gradingResult, setGradingResult] = useState('');
   const [gradingError, setGradingError] = useState('');
   const [isGrading, setIsGrading] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   // Datos para subir a planilla
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
@@ -95,6 +97,48 @@ export const UserView = () => {
     }
   };
 
+  const extractIframeContent = (text: string): string => {
+    const iframeMatch = text.match(/<iframe[^>]*srcdoc=["']([^"']*)["'][^>]*>/i);
+    if (iframeMatch && iframeMatch[1]) {
+      let content = iframeMatch[1];
+      content = content.replace(/&quot;/g, '"');
+      content = content.replace(/&lt;/g, '<');
+      content = content.replace(/&gt;/g, '>');
+      content = content.replace(/&amp;/g, '&');
+      content = content.replace(/\\n/g, '\n');
+      return content;
+    }
+    return text.replace(/\\n/g, '\n');
+  };
+
+  const convertMarkdownToHtml = (text: string): string => {
+    let html = text;
+    
+    // Convertir títulos
+    html = html.replace(/^### (.+)$/gm, '<h3 style="font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 0.75rem 0;">$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2 style="font-size: 1.5rem; font-weight: 700; margin: 2rem 0 1rem 0;">$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1 style="font-size: 1.875rem; font-weight: 700; margin: 2rem 0 1rem 0;">$1</h1>');
+    
+    // Convertir negritas **texto**
+    html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong style="font-weight: 700;">$1</strong>');
+    
+    // Convertir cursivas *texto*
+    html = html.replace(/\*([^\*]+)\*/g, '<em style="font-style: italic;">$1</em>');
+    
+    // Convertir saltos de línea dobles en párrafos
+    const paragraphs = html.split(/\n\n+/);
+    html = paragraphs.map(p => {
+      if (p.trim().startsWith('<h') || p.trim().startsWith('<ul') || p.trim().startsWith('<ol')) {
+        return p;
+      }
+      // Reemplazar saltos de línea simples por <br>
+      const withBreaks = p.replace(/\n/g, '<br>');
+      return `<p style="margin: 0.75rem 0; line-height: 1.6;">${withBreaks}</p>`;
+    }).join('');
+    
+    return html;
+  };
+
   const handleGrade = async () => {
     if (!selectedRubricId || !submissionFile) {
       alert('Por favor selecciona una rúbrica y un archivo a corregir');
@@ -137,10 +181,14 @@ export const UserView = () => {
       const result =
         typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
 
-      setGradingResult(result);
+      // Extraer contenido del iframe si existe
+      let processedResult = extractIframeContent(result);
+      // Convertir markdown a HTML
+      processedResult = convertMarkdownToHtml(processedResult);
+      setGradingResult(processedResult);
 
-      // Intentar parsear secciones para auto-llenar planilla
-      parseGradingSections(result);
+      // Intentar parsear secciones para auto-llenar planilla (usar el texto sin HTML)
+      parseGradingSections(extractIframeContent(result));
     } catch (err: unknown) {
       setGradingError(
         err && typeof err === 'object' && 'message' in err
@@ -213,6 +261,29 @@ export const UserView = () => {
     } finally {
       setIsUploadingToSheet(false);
     }
+  };
+
+  const handleExportToPDF = () => {
+    if (!resultRef.current || !gradingResult) return;
+
+    // Crear un elemento temporal solo con el contenido
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = gradingResult;
+    tempDiv.style.padding = '20px';
+    tempDiv.style.fontFamily = 'Arial, sans-serif';
+    tempDiv.style.fontSize = '14px';
+    tempDiv.style.color = '#000';
+    tempDiv.style.backgroundColor = '#fff';
+
+    const opt = {
+      margin: 15,
+      filename: 'resultado-correccion.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(tempDiv).save();
   };
 
   return (
@@ -294,10 +365,21 @@ export const UserView = () => {
           hover
           hoverColor="indigo"
         >
-          <div className="max-h-[300px] max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-border-primary/60 bg-bg-tertiary/70 p-3 shadow-inner sm:max-h-[450px] sm:rounded-2xl sm:p-4 lg:max-h-[520px] lg:p-5">
-            <pre className="text-xs leading-relaxed text-text-secondary sm:text-sm whitespace-pre-wrap">
-              {gradingResult}
-            </pre>
+          <div 
+            ref={resultRef}
+            className="max-h-[300px] max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-border-primary/60 bg-white p-4 shadow-inner sm:max-h-[450px] sm:rounded-2xl sm:p-6 lg:max-h-[520px] lg:p-8"
+            style={{ 
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              fontSize: '15px',
+              lineHeight: '1.6',
+              color: '#1f2937'
+            }}
+            dangerouslySetInnerHTML={{ __html: gradingResult }}
+          />
+          <div className="mt-4">
+            <Button onClick={handleExportToPDF}>
+              Exportar como PDF
+            </Button>
           </div>
         </Card>
       )}
