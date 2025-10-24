@@ -192,6 +192,32 @@ export const RubricsManager = () => {
     setSelectedRubric(null);
   };
 
+  const handleJSONFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        // Intentar parsear para validar que es JSON válido
+        JSON.parse(content);
+        // Si es válido, actualizar el textarea
+        setFormData({
+          ...formData,
+          rubric_json: JSON.stringify(JSON.parse(content), null, 2)
+        });
+        setFormErrors({ ...formErrors, rubric_json: '' });
+      } catch (err) {
+        setFormErrors({
+          ...formErrors,
+          rubric_json: 'El archivo no contiene JSON válido'
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
   /**
    * Genera el JSON de la rúbrica desde el PDF usando n8n
    * Este es el nuevo flujo: generar → mostrar → editar (opcional) → guardar
@@ -325,13 +351,12 @@ export const RubricsManager = () => {
       header: 'Fuente',
       accessor: (row: Rubric) => (
         <span
-          className={`px-2 py-1 rounded text-xs ${
-            row.source === 'pdf'
-              ? 'bg-danger-1/20 text-danger-1'
-              : row.source === 'json'
+          className={`px-2 py-1 rounded text-xs ${row.source === 'pdf'
+            ? 'bg-danger-1/20 text-danger-1'
+            : row.source === 'json'
               ? 'bg-accent-1/20 text-accent-1'
               : 'bg-bg-tertiary/20 text-text-tertiary'
-          }`}
+            }`}
         >
           {row.source.toUpperCase()}
         </span>
@@ -437,10 +462,10 @@ export const RubricsManager = () => {
           modalMode === 'create-json'
             ? 'Crear Rúbrica desde JSON'
             : modalMode === 'create-pdf'
-            ? 'Crear Rúbrica desde PDF'
-            : modalMode === 'edit'
-            ? 'Editar Rúbrica'
-            : 'Ver Rúbrica'
+              ? 'Crear Rúbrica desde PDF'
+              : modalMode === 'edit'
+                ? 'Editar Rúbrica'
+                : 'Ver Rúbrica'
         }
         showFooter={modalMode !== 'view'}
         confirmText="Guardar"
@@ -534,14 +559,30 @@ export const RubricsManager = () => {
                   <span className="ml-2 text-xs text-text-tertiary">(Se generará al procesar el PDF)</span>
                 )}
               </label>
+
+              {/* Archivo JSON - Solo visible en create-json y edit */}
+              {(modalMode === 'create-json' || modalMode === 'edit') && (
+                <div className="mb-3">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleJSONFileUpload}
+                    className="w-full px-4 py-2.5 bg-bg-tertiary border border-border-primary/60 rounded-2xl text-text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-accent-1 file:to-accent-2 file:text-white hover:file:from-accent-2 hover:file:to-accent-3 transition-all mb-3"
+                  />
+                  <p className="text-sm text-text-tertiary mt-1">
+                    Sube un archivo JSON o pega el contenido directamente abajo
+                  </p>
+                </div>
+              )}
+
+              {/* Textarea para JSON */}
               <textarea
                 rows={15}
                 value={formData.rubric_json}
                 onChange={(e) => setFormData({ ...formData, rubric_json: e.target.value })}
                 disabled={modalMode === 'view'}
-                className={`w-full px-4 py-2.5 bg-bg-tertiary border ${
-                  formErrors.rubric_json ? 'border-danger-1' : 'border-border-primary/60'
-                } rounded-2xl text-text-primary font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-accent-1/70 disabled:opacity-40`}
+                className={`w-full px-4 py-2.5 bg-bg-tertiary border ${formErrors.rubric_json ? 'border-danger-1' : 'border-border-primary/60'
+                  } rounded-2xl text-text-primary font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-accent-1/70 disabled:opacity-40`}
                 placeholder={modalMode === 'create-pdf'
                   ? 'El JSON se generará automáticamente al procesar el PDF...'
                   : '{"rubric_id": "...", "title": "...", ...}'}
