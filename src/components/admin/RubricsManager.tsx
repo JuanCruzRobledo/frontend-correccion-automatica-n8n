@@ -106,13 +106,41 @@ export const RubricsManager = () => {
 
   const handleCreateFromJSON = () => {
     setModalMode('create-json');
-    resetForm();
+    setFormData({
+      name: '',
+      university_id: filterUniversityId || '',
+      course_id: filterCourseId || '',
+      rubric_json: '',
+      pdf_file: null,
+    });
+    setFormErrors({
+      name: '',
+      university_id: '',
+      course_id: '',
+      rubric_json: '',
+      pdf_file: '',
+    });
+    setSelectedRubric(null);
     setIsModalOpen(true);
   };
 
   const handleCreateFromPDF = () => {
     setModalMode('create-pdf');
-    resetForm();
+    setFormData({
+      name: '',
+      university_id: filterUniversityId || '',
+      course_id: filterCourseId || '',
+      rubric_json: '',
+      pdf_file: null,
+    });
+    setFormErrors({
+      name: '',
+      university_id: '',
+      course_id: '',
+      rubric_json: '',
+      pdf_file: '',
+    });
+    setSelectedRubric(null);
     setIsModalOpen(true);
   };
 

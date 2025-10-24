@@ -125,7 +125,11 @@ export const CoursesManager = () => {
 
   const handleCreate = () => {
     setModalMode('create');
-    setFormData({ course_id: '', name: '', university_id: '' });
+    setFormData({
+      course_id: '',
+      name: '',
+      university_id: filterUniversityId || ''
+    });
     setFormErrors({ course_id: '', name: '', university_id: '' });
     setSelectedCourse(null);
     setSuggestedId('');
