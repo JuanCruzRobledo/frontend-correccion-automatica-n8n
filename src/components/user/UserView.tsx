@@ -10,7 +10,7 @@ import { Button } from '../shared/Button';
 import universityService from '../../services/universityService';
 import courseService from '../../services/courseService';
 import rubricService from '../../services/rubricService';
-import type { University, Course, Rubric } from '../../types';
+import type { University, Course, Rubric, Criterion } from '../../types';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 
@@ -43,6 +43,32 @@ export const UserView = () => {
   const [strengths, setStrengths] = useState('');
   const [recommendations, setRecommendations] = useState('');
   const [isUploadingToSheet, setIsUploadingToSheet] = useState(false);
+
+  //Datos para correccion manual
+  const [manualScores, setManualScores] = useState<number[]>([]);
+  const [manualComments, setManualComments] = useState<string[]>([]);
+  const [manualGeneralComments, setManualGeneralComments] = useState('');
+  const [totalManualScore, setTotalManualScore] = useState<number>(0);
+  const [scoreError, setScoreError] = useState<string>('');
+
+  // Modificar el useEffect existente para inicializar scores
+  useEffect(() => {
+    const rubric = rubrics.find((r) => r._id === selectedRubricId);
+    const criteria = rubric?.rubric_json?.criteria ?? [];
+    if (criteria.length > 0) {
+      // Inicializar con los puntajes máximos
+      const initialScores = criteria.map(c => c.weight ?? 0);
+      setManualScores(initialScores);
+      setTotalManualScore(initialScores.reduce((acc, curr) => acc + curr, 0));
+      setManualComments(Array(criteria.length).fill(''));
+      setScoreError('');
+    } else {
+      setManualScores([]);
+      setManualComments([]);
+      setTotalManualScore(0);
+    }
+    setManualGeneralComments('');
+  }, [selectedRubricId, rubrics]);
 
   // Cargar universidades al montar
   useEffect(() => {
@@ -113,18 +139,18 @@ export const UserView = () => {
 
   const convertMarkdownToHtml = (text: string): string => {
     let html = text;
-    
+
     // Convertir títulos
     html = html.replace(/^### (.+)$/gm, '<h3 style="font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 0.75rem 0;">$1</h3>');
     html = html.replace(/^## (.+)$/gm, '<h2 style="font-size: 1.5rem; font-weight: 700; margin: 2rem 0 1rem 0;">$1</h2>');
     html = html.replace(/^# (.+)$/gm, '<h1 style="font-size: 1.875rem; font-weight: 700; margin: 2rem 0 1rem 0;">$1</h1>');
-    
+
     // Convertir negritas **texto**
     html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong style="font-weight: 700;">$1</strong>');
-    
+
     // Convertir cursivas *texto*
     html = html.replace(/\*([^\*]+)\*/g, '<em style="font-style: italic;">$1</em>');
-    
+
     // Convertir saltos de línea dobles en párrafos
     const paragraphs = html.split(/\n\n+/);
     html = paragraphs.map(p => {
@@ -135,7 +161,7 @@ export const UserView = () => {
       const withBreaks = p.replace(/\n/g, '<br>');
       return `<p style="margin: 0.75rem 0; line-height: 1.6;">${withBreaks}</p>`;
     }).join('');
-    
+
     return html;
   };
 
@@ -286,6 +312,79 @@ export const UserView = () => {
     html2pdf().set(opt).from(tempDiv).save();
   };
 
+  // Funciones para manejar corrección manual
+  const handleManualScore = (criterionIndex: number, newScore: number) => {
+    const rubric = rubrics.find(r => r._id === selectedRubricId);
+    if (!rubric?.rubric_json.criteria) return;
+
+    // Calcular el nuevo total potencial
+    const newScores = [...manualScores];
+    const oldScore = newScores[criterionIndex] ?? 0;
+    const potentialTotal = Number((totalManualScore - oldScore + newScore).toFixed(2));
+
+    // Validar que el score no sea negativo
+    if (newScore < 0) {
+      return;
+    }
+
+    // Si el total excedería 1, ajustar automáticamente al máximo disponible
+    if (potentialTotal > 1) {
+      const availableScore = Number((1 - (totalManualScore - oldScore)).toFixed(2));
+      newScores[criterionIndex] = availableScore;
+      setManualScores(newScores);
+      setTotalManualScore(1);
+      setScoreError(''); // Limpiamos el error ya que el total es 1
+      return;
+    }
+
+    // Si no excede, actualizar normalmente
+    newScores[criterionIndex] = newScore;
+    setManualScores(newScores);
+    setTotalManualScore(potentialTotal);
+
+    // Actualizar mensaje de error
+    if (potentialTotal < 1) {
+      setScoreError('La suma total debe ser 1 punto');
+    } else if (potentialTotal === 1) {
+      setScoreError('');
+    }
+  };
+
+  const handleManualComment = (criterionIndex: number, comment: string) => {
+    const newComments = [...manualComments];
+    newComments[criterionIndex] = comment;
+    setManualComments(newComments);
+  };
+
+  const handleManualGrade = () => {
+    const rubric = rubrics.find(r => r._id === selectedRubricId);
+    if (!rubric?.rubric_json.criteria) return;
+
+    const totalScore = Number(manualScores.reduce((acc, curr) => acc + (curr || 0), 0).toFixed(2));
+    const maxScore = rubric.rubric_json.criteria.reduce((acc, curr) => acc + curr.weight, 0);
+
+    let report = `# Reporte de Corrección Manual\n\n`;
+    report += `## Nota Final: ${totalScore}/${maxScore}\n\n`;
+
+    report += `## Evaluación por Criterios\n\n`;
+    rubric.rubric_json.criteria.forEach((criterion: Criterion, idx) => {
+      report += `### ${criterion.name}\n`;
+      report += `* Puntaje: ${manualScores[idx] || 0}/${criterion.weight}\n`;
+      report += `* Comentarios: ${manualComments[idx] || 'Sin comentarios'}\n\n`;
+    });
+
+    report += `## Comentarios Generales\n\n${manualGeneralComments}\n`;
+
+    // Actualizar estado
+    setGradingResult(convertMarkdownToHtml(report));
+
+    // Actualizar campos de la planilla automáticamente
+    setGrade(`${totalScore}/${maxScore}`);
+    setSummaryByCriteria(rubric.rubric_json.criteria
+      .map((c, i) => `${c.name}: ${manualScores[i] || 0}/${c.weight}`)
+      .join('\n'));
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Sección 1: Contexto Académico */}
@@ -324,39 +423,127 @@ export const UserView = () => {
         </div>
       </Card>
 
-      {/* Sección 2: Subir Archivo a Corregir */}
-      <Card
-        title="Subir Archivo a Corregir"
-        stepNumber="2"
-        hover
-        hoverColor="sky"
-      >
-        <div className="space-y-3 sm:space-y-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-text-tertiary mb-2">
-              Archivo del Alumno
-            </label>
-            <input
-              type="file"
-              onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
-              className="block w-full cursor-pointer rounded-xl border border-border-primary/60 bg-bg-tertiary/60 px-3 py-2.5 text-xs text-text-primary shadow-inner transition focus:border-ring/70 focus:outline-none focus:ring-2 focus:ring-ring/40 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-accent-1 file:to-accent-2 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:brightness-110 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm file:sm:mr-4 file:sm:rounded-xl file:sm:px-4 file:sm:py-2 file:sm:text-sm"
-            />
-            <p className="mt-1.5 text-xs text-text-tertiary sm:text-sm">
-              Sube el archivo que deseas corregir (código, PDF, documento, etc.)
+      {/* Contenedor para las dos cards de corrección */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Sección 2: Corrección Automática */}
+        <Card
+          title="Corrección Automática"
+          stepNumber="2"
+          hover
+          hoverColor="sky"
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-text-tertiary">
+              Sube el archivo para procesar con n8n y obtener una corrección automática
             </p>
-          </div>
-
-          <Button onClick={handleGrade} loading={isGrading} disabled={!selectedRubricId || !submissionFile}>
-            {isGrading ? 'Corrigiendo…' : 'Corregir Archivo'}
-          </Button>
-
-          {gradingError && (
-            <div className="rounded-2xl border border-danger-1/40 bg-danger-1/10 p-4 text-sm text-danger-1 shadow-inner">
-              <strong className="block text-danger-1">{gradingError}</strong>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-text-tertiary mb-2">
+                Archivo del Alumno
+              </label>
+              <input
+                type="file"
+                onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
+                className="block w-full cursor-pointer rounded-xl border border-border-primary/60 bg-bg-tertiary/60 px-3 py-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-accent-1 file:text-white hover:file:bg-accent-2 transition-colors"
+              />
             </div>
-          )}
-        </div>
-      </Card>
+            <Button
+              onClick={handleGrade}
+              loading={isGrading}
+              disabled={!selectedRubricId || !submissionFile}
+            >
+              {isGrading ? 'Procesando…' : 'Corregir Automáticamente'}
+            </Button>
+          </div>
+        </Card>
+
+        {/* Sección 2.5: Corrección Manual */}
+        <Card
+          title="Corrección Manual"
+          stepNumber="2.5"
+          hover
+          hoverColor="purple"
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-text-tertiary">
+              Evalúa manualmente usando la rúbrica seleccionada como guía
+            </p>
+
+            {selectedRubricId && (
+              <>
+                {/* Criterios de la rúbrica */}
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  <div className="sticky top-0 bg-bg-secondary p-2 rounded-lg mb-4 border border-border-primary/60">
+                    <p className="text-sm text-text-tertiary flex justify-between items-center">
+                      <span>Total acumulado:</span>
+                      <span className={`font-medium ${totalManualScore === 1 ? 'text-green-500' : 'text-amber-500'}`}>
+                        {totalManualScore.toFixed(2)}/1 punto
+                      </span>
+                    </p>
+                    {scoreError && (
+                      <p className="text-sm text-danger-1 mt-1">{scoreError}</p>
+                    )}
+                  </div>
+
+                  {rubrics
+                    .find(r => r._id === selectedRubricId)
+                    ?.rubric_json.criteria?.map((criterion, idx) => (
+                      <div key={idx} className="p-4 rounded-xl border border-border-primary/60 bg-bg-tertiary/60">
+                        <h3 className="font-medium mb-2">{criterion.name}</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm text-text-tertiary">Puntaje:</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max={criterion.weight}
+                              step="0.05"
+                              value={manualScores[idx] ?? 0}
+                              className="w-20 px-2 py-1 rounded-lg border border-border-primary/60 bg-bg-tertiary text-text-primary"
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value) || 0;
+                                handleManualScore(idx, value);
+                              }}
+                            />
+                            <span className="text-sm text-text-tertiary">
+                              / {criterion.weight}
+                            </span>
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={manualComments[idx] ?? ''}
+                            placeholder="Comentarios para este criterio..."
+                            className="w-full px-3 py-2 rounded-lg border border-border-primary/60 bg-bg-tertiary text-text-primary placeholder-text-placeholder"
+                            onChange={(e) => handleManualComment(idx, e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {/* Comentarios generales */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-text-tertiary">
+                    Comentarios Generales
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border-primary/60 bg-bg-tertiary text-text-primary placeholder-text-placeholder"
+                    placeholder="Observaciones, fortalezas y recomendaciones generales..."
+                    onChange={(e) => setManualGeneralComments(e.target.value)}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleManualGrade}
+                  variant="secondary"
+                >
+                  Generar Reporte Manual
+                </Button>
+              </>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {/* Resultado de la Corrección (solo si hay resultado) */}
       {gradingResult && (
@@ -365,10 +552,10 @@ export const UserView = () => {
           hover
           hoverColor="indigo"
         >
-          <div 
+          <div
             ref={resultRef}
             className="max-h-[300px] max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-border-primary/60 bg-white p-4 shadow-inner sm:max-h-[450px] sm:rounded-2xl sm:p-6 lg:max-h-[520px] lg:p-8"
-            style={{ 
+            style={{
               fontFamily: 'system-ui, -apple-system, sans-serif',
               fontSize: '15px',
               lineHeight: '1.6',

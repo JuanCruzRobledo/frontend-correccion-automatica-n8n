@@ -98,6 +98,17 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface ManualGradingResult {
+  totalScore: number;
+  maxScore: number;
+  criteriaScores: {
+    criterionId: string;
+    score: number;
+    comment: string;
+  }[];
+  generalComments: string;
+}
+
 // ========== API RESPONSES ==========
 
 export interface ApiResponse<T = unknown> {
