@@ -25,10 +25,15 @@ export const UserView = () => {
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [selectedRubricId, setSelectedRubricId] = useState('');
 
-  // Archivo a corregir
+  // Estado para corrección automática masiva
+  const [isBatchGrading, setIsBatchGrading] = useState(false);
+  const [batchGradingResult, setBatchGradingResult] = useState('');
+  const [batchGradingError, setBatchGradingError] = useState('');
+
+  // Archivo a corregir (para corrección manual)
   const [submissionFile, setSubmissionFile] = useState<File | null>(null);
 
-  // Resultado de la corrección
+  // Resultado de la corrección manual
   const [gradingResult, setGradingResult] = useState('');
   const [gradingError, setGradingError] = useState('');
   const [isGrading, setIsGrading] = useState(false);
@@ -286,6 +291,51 @@ export const UserView = () => {
     html2pdf().set(opt).from(tempDiv).save();
   };
 
+  const handleBatchGrading = async () => {
+    if (!selectedRubricId) {
+      alert('Por favor selecciona una rúbrica');
+      return;
+    }
+
+    try {
+      setIsBatchGrading(true);
+      setBatchGradingError('');
+      setBatchGradingResult('');
+
+      // Obtener la rúbrica seleccionada
+      const rubric = rubrics.find((r) => r._id === selectedRubricId);
+      if (!rubric) {
+        throw new Error('Rúbrica no encontrada');
+      }
+
+      // Llamar al webhook de corrección masiva
+      const webhookUrl =
+        import.meta.env.VITE_BATCH_GRADING_WEBHOOK_URL ||
+        'https://tu-servidor.n8n.example/webhook/batch-grading';
+
+      const response = await axios.post(webhookUrl, {
+        university_id: selectedUniversityId,
+        course_id: selectedCourseId,
+        rubric_id: selectedRubricId,
+        rubric_json: rubric.rubric_json,
+      });
+
+      // Extraer resultado (esperamos algo como { success: true, count: 15, message: "..." })
+      const { count, message } = response.data;
+      setBatchGradingResult(
+        `✅ Se corrigieron exitosamente ${count} estudiante${count !== 1 ? 's' : ''}.${message ? ` ${message}` : ''}`
+      );
+    } catch (err: unknown) {
+      setBatchGradingError(
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : 'Error al ejecutar la corrección automática'
+      );
+    } finally {
+      setIsBatchGrading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Sección 1: Contexto Académico */}
@@ -324,39 +374,96 @@ export const UserView = () => {
         </div>
       </Card>
 
-      {/* Sección 2: Subir Archivo a Corregir */}
-      <Card
-        title="Subir Archivo a Corregir"
-        stepNumber="2"
-        hover
-        hoverColor="sky"
-      >
-        <div className="space-y-3 sm:space-y-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-text-tertiary mb-2">
-              Archivo del Alumno
-            </label>
-            <input
-              type="file"
-              onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
-              className="block w-full cursor-pointer rounded-xl border border-border-primary/60 bg-bg-tertiary/60 px-3 py-2.5 text-xs text-text-primary shadow-inner transition focus:border-ring/70 focus:outline-none focus:ring-2 focus:ring-ring/40 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-accent-1 file:to-accent-2 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:brightness-110 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm file:sm:mr-4 file:sm:rounded-xl file:sm:px-4 file:sm:py-2 file:sm:text-sm"
-            />
-            <p className="mt-1.5 text-xs text-text-tertiary sm:text-sm">
-              Sube el archivo que deseas corregir (código, PDF, documento, etc.)
-            </p>
-          </div>
-
-          <Button onClick={handleGrade} loading={isGrading} disabled={!selectedRubricId || !submissionFile}>
-            {isGrading ? 'Corrigiendo…' : 'Corregir Archivo'}
-          </Button>
-
-          {gradingError && (
-            <div className="rounded-2xl border border-danger-1/40 bg-danger-1/10 p-4 text-sm text-danger-1 shadow-inner">
-              <strong className="block text-danger-1">{gradingError}</strong>
+      {/* Sección 2: Sistema de Corrección - Dos divs lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Corrección Manual (Izquierda) */}
+        <Card
+          title="Corrección Manual"
+          stepNumber="2"
+          hover
+          hoverColor="sky"
+        >
+          <div className="space-y-4">
+            <div className="rounded-xl bg-bg-tertiary/40 border border-border-primary/40 p-4">
+              <p className="text-sm text-text-secondary mb-2">
+                <strong className="text-text-primary">📝 Corrección Individual</strong>
+              </p>
+              <p className="text-xs text-text-tertiary">
+                Sube el archivo de un alumno para corregirlo individualmente con IA.
+              </p>
             </div>
-          )}
-        </div>
-      </Card>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-text-tertiary mb-2">
+                Archivo del Alumno
+              </label>
+              <input
+                type="file"
+                onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
+                className="block w-full cursor-pointer rounded-xl border border-border-primary/60 bg-bg-tertiary/60 px-3 py-2.5 text-xs text-text-primary shadow-inner transition focus:border-ring/70 focus:outline-none focus:ring-2 focus:ring-ring/40 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-accent-1 file:to-accent-2 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:brightness-110 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm file:sm:mr-4 file:sm:rounded-xl file:sm:px-4 file:sm:py-2 file:sm:text-sm"
+              />
+              <p className="mt-1.5 text-xs text-text-tertiary sm:text-sm">
+                Sube el archivo que deseas corregir (código, PDF, documento, etc.)
+              </p>
+            </div>
+
+            <Button
+              onClick={handleGrade}
+              loading={isGrading}
+              disabled={!selectedRubricId || !submissionFile}
+            >
+              {isGrading ? 'Corrigiendo…' : 'Corregir Archivo'}
+            </Button>
+
+            {gradingError && (
+              <div className="rounded-2xl border border-danger-1/40 bg-danger-1/10 p-4 text-sm text-danger-1 shadow-inner">
+                <strong className="block text-danger-1">{gradingError}</strong>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Corrección Automática (Derecha) */}
+        <Card
+          title="Corrección Automática"
+          stepNumber="2"
+          hover
+          hoverColor="purple"
+        >
+          <div className="space-y-4">
+            <div className="rounded-xl bg-bg-tertiary/40 border border-border-primary/40 p-4">
+              <p className="text-sm text-text-secondary mb-2">
+                <strong className="text-text-primary">⚡ Corrección Masiva</strong>
+              </p>
+              <p className="text-xs text-text-tertiary">
+                Este proceso corregirá automáticamente TODOS los alumnos pendientes usando la rúbrica seleccionada.
+                No se requiere subir archivos individuales.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleBatchGrading}
+              loading={isBatchGrading}
+              disabled={!selectedRubricId}
+              variant="secondary"
+            >
+              {isBatchGrading ? 'Corrigiendo todos los alumnos…' : 'Iniciar Corrección Automática'}
+            </Button>
+
+            {batchGradingResult && (
+              <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-400 shadow-inner">
+                <strong className="block">{batchGradingResult}</strong>
+              </div>
+            )}
+
+            {batchGradingError && (
+              <div className="rounded-2xl border border-danger-1/40 bg-danger-1/10 p-4 text-sm text-danger-1 shadow-inner">
+                <strong className="block text-danger-1">{batchGradingError}</strong>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {/* Resultado de la Corrección (solo si hay resultado) */}
       {gradingResult && (
@@ -384,13 +491,14 @@ export const UserView = () => {
         </Card>
       )}
 
-      {/* Sección 3: Subir Resultados a Planilla */}
-      <Card
-        title="Subir Resultados a Planilla"
-        stepNumber="3"
-        hover
-        hoverColor="emerald"
-      >
+      {/* Sección 3: Subir Resultados a Planilla (solo si hay resultado de corrección manual) */}
+      {gradingResult && (
+        <Card
+          title="Subir Resultados a Planilla"
+          stepNumber="3"
+          hover
+          hoverColor="emerald"
+        >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
@@ -468,7 +576,8 @@ export const UserView = () => {
             Subir a Planilla
           </Button>
         </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 };
