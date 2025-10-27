@@ -3,26 +3,41 @@
  * Permite seleccionar universidad, curso, rúbrica y corregir archivos
  */
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Card } from '../shared/Card';
 import { Select } from '../shared/Select';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import universityService from '../../services/universityService';
+import facultyService from '../../services/facultyService';
+import careerService from '../../services/careerService';
 import courseService from '../../services/courseService';
+import commissionService from '../../services/commissionService';
 import rubricService from '../../services/rubricService';
-import type { University, Course, Rubric } from '../../types';
+import profileService from '../../services/profileService';
+import type { University, Faculty, Career, Course, Commission, Rubric, UserProfile } from '../../types';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 
 export const UserView = () => {
+  // Estado de perfil del usuario (para verificar API key)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
   // Datos de catálogos
   const [universities, setUniversities] = useState<University[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
   const [rubrics, setRubrics] = useState<Rubric[]>([]);
 
   // Selecciones
   const [selectedUniversityId, setSelectedUniversityId] = useState('');
+  const [selectedFacultyId, setSelectedFacultyId] = useState('');
+  const [selectedCareerId, setSelectedCareerId] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [selectedCommissionId, setSelectedCommissionId] = useState('');
   const [selectedRubricId, setSelectedRubricId] = useState('');
 
   // Estado para corrección automática masiva
@@ -49,31 +64,88 @@ export const UserView = () => {
   const [recommendations, setRecommendations] = useState('');
   const [isUploadingToSheet, setIsUploadingToSheet] = useState(false);
 
+  // Cargar perfil del usuario al montar (para verificar API key)
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
   // Cargar universidades al montar
   useEffect(() => {
     loadUniversities();
   }, []);
 
-  // Cargar cursos cuando cambia la universidad
+  // Cargar facultades cuando cambia la universidad
   useEffect(() => {
     if (selectedUniversityId) {
-      loadCourses(selectedUniversityId);
+      loadFaculties(selectedUniversityId);
+    } else {
+      setFaculties([]);
+    }
+    setSelectedFacultyId('');
+    setSelectedCareerId('');
+    setSelectedCourseId('');
+    setSelectedCommissionId('');
+    setSelectedRubricId('');
+  }, [selectedUniversityId]);
+
+  // Cargar carreras cuando cambia la facultad
+  useEffect(() => {
+    if (selectedFacultyId) {
+      loadCareers(selectedFacultyId);
+    } else {
+      setCareers([]);
+    }
+    setSelectedCareerId('');
+    setSelectedCourseId('');
+    setSelectedCommissionId('');
+    setSelectedRubricId('');
+  }, [selectedFacultyId]);
+
+  // Cargar cursos cuando cambia la carrera
+  useEffect(() => {
+    if (selectedCareerId) {
+      loadCourses(selectedCareerId);
     } else {
       setCourses([]);
     }
     setSelectedCourseId('');
+    setSelectedCommissionId('');
     setSelectedRubricId('');
-  }, [selectedUniversityId]);
+  }, [selectedCareerId]);
 
-  // Cargar rúbricas cuando cambia el curso
+  // Cargar comisiones cuando cambia el curso
   useEffect(() => {
-    if (selectedUniversityId && selectedCourseId) {
-      loadRubrics(selectedUniversityId, selectedCourseId);
+    if (selectedCourseId) {
+      loadCommissions(selectedCourseId);
+    } else {
+      setCommissions([]);
+    }
+    setSelectedCommissionId('');
+    setSelectedRubricId('');
+  }, [selectedCourseId]);
+
+  // Cargar rúbricas cuando cambia la comisión
+  useEffect(() => {
+    if (selectedCommissionId) {
+      loadRubrics(selectedCommissionId);
     } else {
       setRubrics([]);
     }
     setSelectedRubricId('');
-  }, [selectedCourseId]);
+  }, [selectedCommissionId]);
+
+  const loadProfile = async () => {
+    try {
+      setLoadingProfile(true);
+      const data = await profileService.getProfile();
+      setUserProfile(data);
+    } catch (err) {
+      console.error('Error al cargar perfil:', err);
+      setUserProfile(null);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   const loadUniversities = async () => {
     try {
@@ -84,18 +156,45 @@ export const UserView = () => {
     }
   };
 
-  const loadCourses = async (universityId: string) => {
+  const loadFaculties = async (universityId: string) => {
     try {
-      const data = await courseService.getCourses(universityId);
+      const data = await facultyService.getFaculties(universityId);
+      setFaculties(data);
+    } catch (err) {
+      console.error('Error al cargar facultades:', err);
+    }
+  };
+
+  const loadCareers = async (facultyId: string) => {
+    try {
+      const data = await careerService.getCareers(facultyId);
+      setCareers(data);
+    } catch (err) {
+      console.error('Error al cargar carreras:', err);
+    }
+  };
+
+  const loadCourses = async (careerId: string) => {
+    try {
+      const data = await courseService.getCourses({ career_id: careerId });
       setCourses(data);
     } catch (err) {
       console.error('Error al cargar cursos:', err);
     }
   };
 
-  const loadRubrics = async (universityId: string, courseId: string) => {
+  const loadCommissions = async (courseId: string) => {
     try {
-      const data = await rubricService.getRubrics(universityId, courseId);
+      const data = await commissionService.getCommissions({ course_id: courseId });
+      setCommissions(data);
+    } catch (err) {
+      console.error('Error al cargar comisiones:', err);
+    }
+  };
+
+  const loadRubrics = async (commissionId: string) => {
+    try {
+      const data = await rubricService.getRubrics({ commission_id: commissionId });
       setRubrics(data);
     } catch (err) {
       console.error('Error al cargar rúbricas:', err);
@@ -150,6 +249,12 @@ export const UserView = () => {
       return;
     }
 
+    // Verificar que tiene API key
+    if (!hasApiKey || !userProfile) {
+      setGradingError('Debes configurar tu API Key de Gemini en tu perfil antes de corregir.');
+      return;
+    }
+
     try {
       setIsGrading(true);
       setGradingError('');
@@ -161,30 +266,50 @@ export const UserView = () => {
         throw new Error('Rúbrica no encontrada');
       }
 
-      // Preparar FormData
+      // Obtener nombres completos de las entidades seleccionadas
+      const university = universities.find(u => u.university_id === selectedUniversityId);
+      const faculty = faculties.find(f => f.faculty_id === selectedFacultyId);
+      const career = careers.find(c => c.career_id === selectedCareerId);
+      const course = courses.find(c => c.course_id === selectedCourseId);
+      const commission = commissions.find(c => c.commission_id === selectedCommissionId);
+
+      if (!university || !faculty || !career || !course || !commission) {
+        throw new Error('Faltan datos de la jerarquía académica');
+      }
+
+      // Preparar FormData con el nuevo formato
       const formData = new FormData();
 
-      // Crear archivo JSON temporal con la rúbrica
+      // Strings requeridos
+      formData.append('universidad', university.name);
+      formData.append('facultad', faculty.name);
+      formData.append('carrera', career.name);
+      formData.append('materia', course.name);
+      formData.append('comision', commission.name);
+      formData.append('nombre_rubrica', rubric.name);
+
+      // JSON: rúbrica completa
       const rubricBlob = new Blob([JSON.stringify(rubric.rubric_json)], {
         type: 'application/json',
       });
-      formData.append('rubric', rubricBlob, 'rubric.json');
+      formData.append('rubrica', rubricBlob, 'rubrica.json');
 
-      // Agregar archivo a corregir
-      formData.append('submission', submissionFile);
+      // Archivo binario: examen a corregir
+      formData.append('examen', submissionFile);
 
-      // Llamar al webhook de n8n (directamente o a través del backend)
-      const webhookUrl =
-        import.meta.env.VITE_GRADING_WEBHOOK_URL ||
-        'https://tu-servidor.n8n.example/webhook/grading';
-
-      const response = await axios.post(webhookUrl, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Llamar al endpoint del backend (que actuará como proxy y agregará la API key)
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await axios.post(`${API_URL}/api/grade`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // Para autenticación
+        },
       });
 
-      // Extraer resultado
+      // Extraer resultado (viene en response.data.data porque el backend devuelve {success, data})
+      const resultData = response.data.data || response.data;
       const result =
-        typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        typeof resultData === 'string' ? resultData : JSON.stringify(resultData);
 
       // Extraer contenido del iframe si existe
       let processedResult = extractIframeContent(result);
@@ -315,7 +440,10 @@ export const UserView = () => {
 
       const response = await axios.post(webhookUrl, {
         university_id: selectedUniversityId,
+        faculty_id: selectedFacultyId,
+        career_id: selectedCareerId,
         course_id: selectedCourseId,
+        commission_id: selectedCommissionId,
         rubric_id: selectedRubricId,
         rubric_json: rubric.rubric_json,
       });
@@ -336,8 +464,51 @@ export const UserView = () => {
     }
   };
 
+  // Verificar si el usuario tiene API key configurada
+  const hasApiKey = userProfile?.hasGeminiApiKey ?? false;
+
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* Banner de advertencia si NO tiene API key */}
+      {!loadingProfile && !hasApiKey && (
+        <div className="bg-danger-1/10 border-2 border-danger-1/50 rounded-2xl p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-danger-1/20 flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-danger-1 mb-2">API Key de Gemini requerida</h3>
+              <p className="text-text-secondary mb-4">
+                Para usar el sistema de corrección automática, debes configurar tu propia API Key de Gemini en tu perfil.
+                Esta key se usa exclusivamente bajo tu cuota personal.
+              </p>
+              <Link to="/profile">
+                <Button variant="primary" size="md">
+                  🔑 Configurar API Key en mi Perfil
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de éxito si tiene API key */}
+      {!loadingProfile && hasApiKey && (
+        <div className="bg-accent-1/10 border border-accent-1/50 rounded-2xl p-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✓</span>
+            <div>
+              <p className="text-accent-1 font-semibold">API Key configurada</p>
+              <p className="text-sm text-text-secondary">
+                Últimos 4 dígitos: <span className="font-mono font-bold">****{userProfile?.gemini_api_key_last_4}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sección 1: Contexto Académico */}
       <Card
         title="Contexto Académico"
@@ -345,7 +516,7 @@ export const UserView = () => {
         hover
         hoverColor="amber"
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Select
             label="Universidad"
             options={universities.map((u) => ({ value: u.university_id, label: u.name }))}
@@ -355,12 +526,39 @@ export const UserView = () => {
           />
 
           <Select
+            label="Facultad"
+            options={faculties.map((f) => ({ value: f.faculty_id, label: f.name }))}
+            value={selectedFacultyId}
+            onChange={(e) => setSelectedFacultyId(e.target.value)}
+            placeholder="Selecciona facultad"
+            disabled={!selectedUniversityId}
+          />
+
+          <Select
+            label="Carrera"
+            options={careers.map((c) => ({ value: c.career_id, label: c.name }))}
+            value={selectedCareerId}
+            onChange={(e) => setSelectedCareerId(e.target.value)}
+            placeholder="Selecciona carrera"
+            disabled={!selectedFacultyId}
+          />
+
+          <Select
             label="Materia"
-            options={courses.map((c) => ({ value: c.course_id, label: c.name }))}
+            options={courses.map((c) => ({ value: c.course_id, label: `${c.name} (${c.year}° año)` }))}
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
             placeholder="Selecciona materia"
-            disabled={!selectedUniversityId}
+            disabled={!selectedCareerId}
+          />
+
+          <Select
+            label="Comisión"
+            options={commissions.map((c) => ({ value: c.commission_id, label: c.name }))}
+            value={selectedCommissionId}
+            onChange={(e) => setSelectedCommissionId(e.target.value)}
+            placeholder="Selecciona comisión"
+            disabled={!selectedCourseId}
           />
 
           <Select
@@ -369,7 +567,7 @@ export const UserView = () => {
             value={selectedRubricId}
             onChange={(e) => setSelectedRubricId(e.target.value)}
             placeholder="Selecciona rúbrica"
-            disabled={!selectedCourseId}
+            disabled={!selectedCommissionId}
           />
         </div>
       </Card>
@@ -410,10 +608,16 @@ export const UserView = () => {
             <Button
               onClick={handleGrade}
               loading={isGrading}
-              disabled={!selectedRubricId || !submissionFile}
+              disabled={!selectedRubricId || !submissionFile || !hasApiKey}
             >
               {isGrading ? 'Corrigiendo…' : 'Corregir Archivo'}
             </Button>
+
+            {!hasApiKey && (
+              <div className="rounded-xl border border-danger-1/40 bg-danger-1/10 p-3 text-sm text-danger-1">
+                ⚠️ Debes configurar tu API Key de Gemini en tu perfil para poder corregir.
+              </div>
+            )}
 
             {gradingError && (
               <div className="rounded-2xl border border-danger-1/40 bg-danger-1/10 p-4 text-sm text-danger-1 shadow-inner">
@@ -444,11 +648,17 @@ export const UserView = () => {
             <Button
               onClick={handleBatchGrading}
               loading={isBatchGrading}
-              disabled={!selectedRubricId}
+              disabled={!selectedRubricId || !hasApiKey}
               variant="secondary"
             >
               {isBatchGrading ? 'Corrigiendo todos los alumnos…' : 'Iniciar Corrección Automática'}
             </Button>
+
+            {!hasApiKey && (
+              <div className="rounded-xl border border-danger-1/40 bg-danger-1/10 p-3 text-sm text-danger-1">
+                ⚠️ Debes configurar tu API Key de Gemini en tu perfil para poder corregir.
+              </div>
+            )}
 
             {batchGradingResult && (
               <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-400 shadow-inner">

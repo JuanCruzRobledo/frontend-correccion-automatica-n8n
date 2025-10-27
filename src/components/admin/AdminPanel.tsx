@@ -1,14 +1,17 @@
 /**
  * AdminPanel - Panel de administración con tabs
- * Integra UniversitiesManager, CoursesManager y RubricsManager
+ * Integra toda la gestión académica jerárquica
  */
 import { useState } from 'react';
 import { UniversitiesManager } from './UniversitiesManager';
+import { FacultiesManager } from './FacultiesManager';
+import { CareersManager } from './CareersManager';
 import { CoursesManager } from './CoursesManager';
+import { CommissionsManager } from './CommissionsManager';
 import { RubricsManager } from './RubricsManager';
 import { UsersManager } from './UsersManager';
 
-type TabId = 'universities' | 'courses' | 'rubrics' | 'users';
+type TabId = 'universities' | 'faculties' | 'careers' | 'courses' | 'commissions' | 'rubrics' | 'users';
 
 interface Tab {
   id: TabId;
@@ -18,9 +21,12 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'universities', label: 'Universidades', icon: '🏫' },
+  { id: 'faculties', label: 'Facultades', icon: '🏛️' },
+  { id: 'careers', label: 'Carreras', icon: '🎓' },
   { id: 'courses', label: 'Materias', icon: '📚' },
+  { id: 'commissions', label: 'Comisiones', icon: '👥' },
   { id: 'rubrics', label: 'Rúbricas', icon: '📋' },
-  { id: 'users', label: 'Usuarios', icon: '👥' },
+  { id: 'users', label: 'Usuarios', icon: '🔐' },
 ];
 
 export const AdminPanel = () => {
@@ -58,7 +64,7 @@ export const AdminPanel = () => {
           {/* Info adicional */}
           <div className="mt-6 pt-6 border-t border-border-primary/60">
             <p className="text-xs text-text-disabled px-2">
-              Gestiona universidades, materias, rúbricas y usuarios del sistema desde aquí.
+              Gestiona la jerarquía académica completa: Universidad → Facultad → Carrera → Materia → Comisión → Rúbrica
             </p>
           </div>
         </div>
@@ -67,7 +73,10 @@ export const AdminPanel = () => {
       {/* Contenido principal */}
       <main className="flex-1 min-w-0">
         {activeTab === 'universities' && <UniversitiesManager />}
+        {activeTab === 'faculties' && <FacultiesManager />}
+        {activeTab === 'careers' && <CareersManager />}
         {activeTab === 'courses' && <CoursesManager />}
+        {activeTab === 'commissions' && <CommissionsManager />}
         {activeTab === 'rubrics' && <RubricsManager />}
         {activeTab === 'users' && <UsersManager />}
       </main>

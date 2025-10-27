@@ -11,17 +11,23 @@ import { Table } from '../shared/Table';
 import { Card } from '../shared/Card';
 import courseService from '../../services/courseService';
 import universityService from '../../services/universityService';
+import facultyService from '../../services/facultyService';
+import careerService from '../../services/careerService';
 import { suggestCourseId, cleanId, isValidId } from '../../utils/slugify';
-import type { Course, University } from '../../types';
+import type { Course, University, Faculty, Career } from '../../types';
 
 export const CoursesManager = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtro
+  // Filtros
   const [filterUniversityId, setFilterUniversityId] = useState('');
+  const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterCareerId, setFilterCareerId] = useState('');
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,11 +38,17 @@ export const CoursesManager = () => {
   const [formData, setFormData] = useState({
     course_id: '',
     name: '',
+    year: 1,
+    career_id: '',
+    faculty_id: '',
     university_id: '',
   });
   const [formErrors, setFormErrors] = useState({
     course_id: '',
     name: '',
+    year: '',
+    career_id: '',
+    faculty_id: '',
     university_id: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -46,20 +58,60 @@ export const CoursesManager = () => {
 
   // Cargar datos al montar
   useEffect(() => {
-    loadUniversities();
-    // NO cargar cursos automáticamente, esperar a que se seleccione universidad
+    loadData();
   }, []);
 
-  // Recargar cursos cuando cambia el filtro
+  // Cargar facultades cuando cambia universidad en filtro
   useEffect(() => {
     if (filterUniversityId) {
-      loadCourses(filterUniversityId);
+      loadFaculties(filterUniversityId);
+    } else {
+      setFaculties([]);
+    }
+    setFilterFacultyId('');
+    setFilterCareerId('');
+  }, [filterUniversityId]);
+
+  // Cargar carreras cuando cambia facultad en filtro
+  useEffect(() => {
+    if (filterFacultyId) {
+      loadCareers(filterFacultyId);
+    } else {
+      setCareers([]);
+    }
+    setFilterCareerId('');
+  }, [filterFacultyId]);
+
+  // Recargar cursos cuando cambia el filtro de carrera
+  useEffect(() => {
+    if (filterCareerId) {
+      loadCourses({ career_id: filterCareerId });
     } else {
       // Si se limpia el filtro, limpiar la tabla también
       setCourses([]);
       setLoading(false);
     }
-  }, [filterUniversityId]);
+  }, [filterCareerId]);
+
+  // Cascada para modal: limpiar facultad/carrera cuando cambia universidad
+  useEffect(() => {
+    if (formData.university_id) {
+      const filteredFaculties = faculties.filter(f => f.university_id === formData.university_id);
+      if (formData.faculty_id && !filteredFaculties.find(f => f.faculty_id === formData.faculty_id)) {
+        setFormData(prev => ({ ...prev, faculty_id: '', career_id: '' }));
+      }
+    }
+  }, [formData.university_id, faculties, formData.faculty_id]);
+
+  // Cascada para modal: limpiar carrera cuando cambia facultad
+  useEffect(() => {
+    if (formData.faculty_id) {
+      const filteredCareers = careers.filter(c => c.faculty_id === formData.faculty_id);
+      if (formData.career_id && !filteredCareers.find(c => c.career_id === formData.career_id)) {
+        setFormData(prev => ({ ...prev, career_id: '' }));
+      }
+    }
+  }, [formData.faculty_id, careers, formData.career_id]);
 
   // Auto-sugerir ID cuando cambia el nombre o la universidad (solo en modo creación)
   useEffect(() => {
@@ -73,7 +125,7 @@ export const CoursesManager = () => {
 
   // Validar ID duplicado con debounce (solo en modo creación)
   useEffect(() => {
-    if (modalMode !== 'create' || !formData.course_id.trim()) {
+    if (modalMode !== 'create' || !formData.course_id.trim() || !formData.career_id) {
       setIsDuplicate(false);
       return;
     }
@@ -81,10 +133,10 @@ export const CoursesManager = () => {
     const timeoutId = setTimeout(async () => {
       setCheckingDuplicate(true);
       try {
-        // Cargar todos los cursos para verificar duplicados
-        const allCourses = await courseService.getCourses();
-        const existing = allCourses.find(
-          (c) => c.course_id.toLowerCase() === formData.course_id.toLowerCase()
+        const existing = courses.find(
+          (c) =>
+            c.course_id.toLowerCase() === formData.course_id.toLowerCase() &&
+            c.career_id === formData.career_id
         );
         setIsDuplicate(!!existing);
       } catch (err) {
@@ -92,25 +144,53 @@ export const CoursesManager = () => {
       } finally {
         setCheckingDuplicate(false);
       }
-    }, 500); // Debounce de 500ms
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.course_id, modalMode]);
+  }, [formData.course_id, formData.career_id, modalMode, courses]);
 
-  const loadUniversities = async () => {
-    try {
-      const data = await universityService.getUniversities();
-      setUniversities(data);
-    } catch (err: unknown) {
-      console.error('Error al cargar universidades:', err);
-    }
-  };
-
-  const loadCourses = async (universityId?: string) => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await courseService.getCourses(universityId);
+      const [universitiesData, facultiesData, careersData] = await Promise.all([
+        universityService.getUniversities(),
+        facultyService.getAllFaculties(),
+        careerService.getAllCareers(),
+      ]);
+      setUniversities(universitiesData);
+      setFaculties(facultiesData);
+      setCareers(careersData);
+    } catch (err: unknown) {
+      setError(err && typeof err === 'object' && 'message' in err ? String(err.message) : 'Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFaculties = async (universityId: string) => {
+    try {
+      const data = await facultyService.getFaculties(universityId);
+      setFaculties(data);
+    } catch (err: unknown) {
+      console.error('Error al cargar facultades:', err);
+    }
+  };
+
+  const loadCareers = async (facultyId: string) => {
+    try {
+      const data = await careerService.getCareers(facultyId);
+      setCareers(data);
+    } catch (err: unknown) {
+      console.error('Error al cargar carreras:', err);
+    }
+  };
+
+  const loadCourses = async (params: { career_id?: string }) => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await courseService.getCourses(params);
       setCourses(data);
     } catch (err: unknown) {
       setError(
@@ -128,9 +208,12 @@ export const CoursesManager = () => {
     setFormData({
       course_id: '',
       name: '',
-      university_id: filterUniversityId || ''
+      year: 1,
+      career_id: filterCareerId || '',
+      faculty_id: filterFacultyId || '',
+      university_id: filterUniversityId || '',
     });
-    setFormErrors({ course_id: '', name: '', university_id: '' });
+    setFormErrors({ course_id: '', name: '', year: '', career_id: '', faculty_id: '', university_id: '' });
     setSelectedCourse(null);
     setSuggestedId('');
     setIsDuplicate(false);
@@ -147,9 +230,12 @@ export const CoursesManager = () => {
     setFormData({
       course_id: course.course_id,
       name: course.name,
+      year: course.year,
+      career_id: course.career_id,
+      faculty_id: course.faculty_id,
       university_id: course.university_id,
     });
-    setFormErrors({ course_id: '', name: '', university_id: '' });
+    setFormErrors({ course_id: '', name: '', year: '', career_id: '', faculty_id: '', university_id: '' });
     setSelectedCourse(course);
     setIsModalOpen(true);
   };
@@ -161,7 +247,7 @@ export const CoursesManager = () => {
 
     try {
       await courseService.deleteCourse(course._id);
-      await loadCourses(filterUniversityId);
+      await loadCourses({ career_id: filterCareerId });
     } catch (err: unknown) {
       alert(
         err && typeof err === 'object' && 'message' in err
@@ -173,13 +259,16 @@ export const CoursesManager = () => {
 
   const handleSubmit = async () => {
     // Validar
-    const errors = { course_id: '', name: '', university_id: '' };
+    const errors = { course_id: '', name: '', year: '', career_id: '', faculty_id: '', university_id: '' };
     if (!formData.course_id.trim()) errors.course_id = 'El ID es requerido';
     if (!formData.name.trim()) errors.name = 'El nombre es requerido';
+    if (!formData.year || formData.year < 1 || formData.year > 6) errors.year = 'El año debe estar entre 1 y 6';
+    if (!formData.career_id) errors.career_id = 'La carrera es requerida';
+    if (!formData.faculty_id) errors.faculty_id = 'La facultad es requerida';
     if (!formData.university_id) errors.university_id = 'La universidad es requerida';
-    if (isDuplicate) errors.course_id = 'Este ID ya existe';
+    if (isDuplicate) errors.course_id = 'Este ID ya existe en esta carrera';
 
-    if (errors.course_id || errors.name || errors.university_id) {
+    if (errors.course_id || errors.name || errors.year || errors.career_id || errors.faculty_id || errors.university_id) {
       setFormErrors(errors);
       return;
     }
@@ -192,12 +281,15 @@ export const CoursesManager = () => {
       } else if (selectedCourse) {
         await courseService.updateCourse(selectedCourse._id, {
           name: formData.name,
+          year: formData.year,
+          career_id: formData.career_id,
+          faculty_id: formData.faculty_id,
           university_id: formData.university_id,
         });
       }
 
       setIsModalOpen(false);
-      await loadCourses(filterUniversityId);
+      await loadCourses({ career_id: filterCareerId });
     } catch (err: unknown) {
       alert(
         err && typeof err === 'object' && 'message' in err
@@ -209,19 +301,31 @@ export const CoursesManager = () => {
     }
   };
 
-  // Obtener nombre de universidad
-  const getUniversityName = (universityId: string) => {
-    const uni = universities.find((u) => u.university_id === universityId);
-    return uni ? uni.name : universityId;
-  };
-
   // Columnas de la tabla
   const columns = [
     { header: 'ID', accessor: 'course_id' as keyof Course },
     { header: 'Nombre', accessor: 'name' as keyof Course },
+    { header: 'Año', accessor: (row: Course) => `${row.year}°` },
+    {
+      header: 'Carrera',
+      accessor: (row: Course) => {
+        const career = careers.find((c) => c.career_id === row.career_id);
+        return career?.name || row.career_id;
+      },
+    },
+    {
+      header: 'Facultad',
+      accessor: (row: Course) => {
+        const faculty = faculties.find((f) => f.faculty_id === row.faculty_id);
+        return faculty?.name || row.faculty_id;
+      },
+    },
     {
       header: 'Universidad',
-      accessor: (row: Course) => getUniversityName(row.university_id),
+      accessor: (row: Course) => {
+        const university = universities.find((u) => u.university_id === row.university_id);
+        return university?.name || row.university_id;
+      },
     },
     {
       header: 'Acciones',
@@ -238,40 +342,82 @@ export const CoursesManager = () => {
     },
   ];
 
+  // Filtros en cascada para la vista
+  const filteredFacultiesForFilter = filterUniversityId
+    ? faculties.filter(f => f.university_id === filterUniversityId)
+    : [];
+
+  const filteredCareersForFilter = filterFacultyId
+    ? careers.filter(c => c.faculty_id === filterFacultyId)
+    : [];
+
   return (
     <Card title="Gestión de Cursos/Materias">
-      <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          {filterUniversityId ? (
-            <p className="text-text-disabled text-sm">{courses.length} cursos registrados</p>
-          ) : (
-            <p className="text-text-disabled text-sm">Selecciona una universidad para ver sus cursos</p>
-          )}
+      <div className="mb-4 space-y-3">
+        <div className="flex justify-between items-center">
+          <p className="text-text-disabled text-sm">
+            {filterCareerId && courses.length > 0 ? `${courses.length} curso${courses.length !== 1 ? 's' : ''} registrado${courses.length !== 1 ? 's' : ''}` : 'Selecciona una carrera para ver sus cursos'}
+          </p>
+          <Button onClick={handleCreate} disabled={!filterCareerId}>+ Crear Curso</Button>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-          <Select
-            options={universities.map((u) => ({
-              value: u.university_id,
-              label: u.name,
-            }))}
-            value={filterUniversityId}
-            onChange={(e) => setFilterUniversityId(e.target.value)}
-            placeholder="Selecciona universidad"
-            className="w-full sm:w-64"
-          />
-          {filterUniversityId && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setFilterUniversityId('');
-              }}
+        {/* Filtros en cascada */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Filtrar por Universidad
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+              value={filterUniversityId}
+              onChange={(e) => setFilterUniversityId(e.target.value)}
             >
-              Limpiar filtro
-            </Button>
-          )}
-          <Button onClick={handleCreate}>+ Crear Curso</Button>
+              <option value="">Todas las universidades</option>
+              {universities.map((uni) => (
+                <option key={uni._id} value={uni.university_id}>
+                  {uni.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Filtrar por Facultad
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterFacultyId}
+              onChange={(e) => setFilterFacultyId(e.target.value)}
+              disabled={!filterUniversityId}
+            >
+              <option value="">Todas las facultades</option>
+              {filteredFacultiesForFilter.map((faculty) => (
+                <option key={faculty._id} value={faculty.faculty_id}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Filtrar por Carrera
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterCareerId}
+              onChange={(e) => setFilterCareerId(e.target.value)}
+              disabled={!filterFacultyId}
+            >
+              <option value="">Todas las carreras</option>
+              {filteredCareersForFilter.map((career) => (
+                <option key={career._id} value={career.career_id}>
+                  {career.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -281,7 +427,7 @@ export const CoursesManager = () => {
         </div>
       )}
 
-      {!filterUniversityId ? (
+      {!filterCareerId ? (
         <div className="text-center py-16 bg-bg-secondary/30 rounded-xl border border-border-primary/40">
           <div className="mb-4">
             <svg
@@ -299,10 +445,10 @@ export const CoursesManager = () => {
             </svg>
           </div>
           <h3 className="text-lg font-medium text-text-secondary mb-2">
-            Selecciona una universidad
+            Selecciona una carrera
           </h3>
           <p className="text-sm text-text-tertiary">
-            Usa el selector de arriba para ver los cursos de una universidad específica
+            Usa los selectores de arriba para filtrar por universidad, facultad y carrera
           </p>
         </div>
       ) : loading ? (
@@ -314,7 +460,7 @@ export const CoursesManager = () => {
         <Table
           data={courses}
           columns={columns}
-          emptyMessage="No hay cursos registrados para esta universidad"
+          emptyMessage="No hay cursos registrados para esta carrera"
         />
       )}
 
@@ -329,19 +475,86 @@ export const CoursesManager = () => {
         confirmLoading={submitting}
       >
         <div className="space-y-4">
-          <Select
-            label="Universidad"
-            options={universities.map((u) => ({
-              value: u.university_id,
-              label: u.name,
-            }))}
-            value={formData.university_id}
-            onChange={(e) =>
-              setFormData({ ...formData, university_id: e.target.value })
-            }
-            error={formErrors.university_id}
-            placeholder="Selecciona una universidad"
-          />
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Universidad *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+              value={formData.university_id}
+              onChange={(e) => setFormData({ ...formData, university_id: e.target.value })}
+              disabled={modalMode === 'edit'}
+            >
+              <option value="">Seleccionar universidad...</option>
+              {universities.map((uni) => (
+                <option key={uni._id} value={uni.university_id}>
+                  {uni.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.university_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
+            )}
+            {modalMode === 'edit' && (
+              <p className="mt-1 text-xs text-text-disabled">La universidad no se puede modificar</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Facultad *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={formData.faculty_id}
+              onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
+              disabled={!formData.university_id || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar facultad...</option>
+              {faculties.filter(f => f.university_id === formData.university_id).map((faculty) => (
+                <option key={faculty._id} value={faculty.faculty_id}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.faculty_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.faculty_id}</p>
+            )}
+            {!formData.university_id && (
+              <p className="mt-1 text-xs text-text-disabled">Primero selecciona una universidad</p>
+            )}
+            {modalMode === 'edit' && (
+              <p className="mt-1 text-xs text-text-disabled">La facultad no se puede modificar</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Carrera *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={formData.career_id}
+              onChange={(e) => setFormData({ ...formData, career_id: e.target.value })}
+              disabled={!formData.faculty_id || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar carrera...</option>
+              {careers.filter(c => c.faculty_id === formData.faculty_id).map((career) => (
+                <option key={career._id} value={career.career_id}>
+                  {career.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.career_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.career_id}</p>
+            )}
+            {!formData.faculty_id && (
+              <p className="mt-1 text-xs text-text-disabled">Primero selecciona una facultad</p>
+            )}
+            {modalMode === 'edit' && (
+              <p className="mt-1 text-xs text-text-disabled">La carrera no se puede modificar</p>
+            )}
+          </div>
 
           <Input
             label="Nombre del Curso"
@@ -352,9 +565,27 @@ export const CoursesManager = () => {
           />
 
           <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Año *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+              value={formData.year}
+              onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+            >
+              {[1, 2, 3, 4, 5, 6].map(year => (
+                <option key={year} value={year}>{year}° año</option>
+              ))}
+            </select>
+            {formErrors.year && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.year}</p>
+            )}
+          </div>
+
+          <div>
             <Input
               label="ID del Curso"
-              placeholder="ej: utn-frm-programacion-1"
+              placeholder="ej: prog-1"
               value={formData.course_id}
               onChange={(e) =>
                 setFormData({ ...formData, course_id: cleanId(e.target.value) })
@@ -369,7 +600,7 @@ export const CoursesManager = () => {
             />
 
             {/* Validación en tiempo real */}
-            {modalMode === 'create' && formData.course_id && (
+            {modalMode === 'create' && formData.course_id && formData.career_id && (
               <>
                 {checkingDuplicate && (
                   <div className="mt-2 p-2 bg-bg-tertiary/50 border border-border-secondary/50 rounded-lg">
@@ -378,10 +609,10 @@ export const CoursesManager = () => {
                 )}
                 {!checkingDuplicate && isDuplicate && (
                   <div className="mt-2 p-2 bg-danger-1/10 border border-danger-1/50 rounded-lg">
-                    <p className="text-xs text-danger-1">⚠️ Este ID ya está en uso</p>
+                    <p className="text-xs text-danger-1">⚠️ Este ID ya está en uso en esta carrera</p>
                   </div>
                 )}
-                {!checkingDuplicate && !isDuplicate && formData.course_id.length >= 3 && (
+                {!checkingDuplicate && !isDuplicate && formData.course_id.length >= 2 && (
                   <div className="mt-2 p-2 bg-accent-1/10 border border-accent-1/50 rounded-lg">
                     <p className="text-xs text-accent-1">✓ ID disponible</p>
                   </div>

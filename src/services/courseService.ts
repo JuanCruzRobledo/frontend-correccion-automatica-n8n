@@ -10,15 +10,19 @@ import type {
   UpdateCourseForm,
 } from '../types';
 
-/**
- * Obtener todos los cursos (con filtro opcional por universidad)
- */
-export const getCourses = async (universityId?: string): Promise<Course[]> => {
-  const url = universityId
-    ? `/api/courses?university_id=${universityId}`
-    : '/api/courses';
+interface GetCoursesParams {
+  career_id?: string;
+  year?: number;
+  faculty_id?: string;
+  university_id?: string;
+}
 
-  const response = await api.get<ApiResponse<Course[]>>(url);
+/**
+ * Obtener todos los cursos (con filtros opcionales)
+ * @param params - Filtros opcionales: career_id, year, faculty_id, university_id
+ */
+export const getCourses = async (params?: GetCoursesParams): Promise<Course[]> => {
+  const response = await api.get<ApiResponse<Course[]>>('/api/courses', { params });
   return response.data.data || [];
 };
 

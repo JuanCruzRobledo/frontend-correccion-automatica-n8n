@@ -34,17 +34,41 @@ export const RubricsManager = () => {
   const [selectedRubric, setSelectedRubric] = useState<Rubric | null>(null);
 
   // Form states
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    commission_id: string;
+    course_id: string;
+    career_id: string;
+    faculty_id: string;
+    university_id: string;
+    rubric_type: import('../../types').RubricType;
+    rubric_number: number;
+    year: number;
+    rubric_json: string;
+    pdf_file: File | null;
+  }>({
     name: '',
-    university_id: '',
+    commission_id: '',
     course_id: '',
+    career_id: '',
+    faculty_id: '',
+    university_id: '',
+    rubric_type: 'tp',
+    rubric_number: 1,
+    year: new Date().getFullYear(),
     rubric_json: '',
-    pdf_file: null as File | null,
+    pdf_file: null,
   });
   const [formErrors, setFormErrors] = useState({
     name: '',
-    university_id: '',
+    commission_id: '',
     course_id: '',
+    career_id: '',
+    faculty_id: '',
+    university_id: '',
+    rubric_type: '',
+    rubric_number: '',
+    year: '',
     rubric_json: '',
     pdf_file: '',
   });
@@ -91,7 +115,10 @@ export const RubricsManager = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await rubricService.getRubrics(universityId, courseId);
+      const params: any = {};
+      if (universityId) params.university_id = universityId;
+      if (courseId) params.course_id = courseId;
+      const data = await rubricService.getRubrics(params);
       setRubrics(data);
     } catch (err: unknown) {
       setError(
@@ -108,15 +135,27 @@ export const RubricsManager = () => {
     setModalMode('create-json');
     setFormData({
       name: '',
-      university_id: filterUniversityId || '',
+      commission_id: '',
       course_id: filterCourseId || '',
+      career_id: '',
+      faculty_id: '',
+      university_id: filterUniversityId || '',
+      rubric_type: 'tp' as const,
+      rubric_number: 1,
+      year: new Date().getFullYear(),
       rubric_json: '',
       pdf_file: null,
     });
     setFormErrors({
       name: '',
-      university_id: '',
+      commission_id: '',
       course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: '',
+      rubric_number: '',
+      year: '',
       rubric_json: '',
       pdf_file: '',
     });
@@ -128,15 +167,27 @@ export const RubricsManager = () => {
     setModalMode('create-pdf');
     setFormData({
       name: '',
-      university_id: filterUniversityId || '',
+      commission_id: '',
       course_id: filterCourseId || '',
+      career_id: '',
+      faculty_id: '',
+      university_id: filterUniversityId || '',
+      rubric_type: 'tp' as const,
+      rubric_number: 1,
+      year: new Date().getFullYear(),
       rubric_json: '',
       pdf_file: null,
     });
     setFormErrors({
       name: '',
-      university_id: '',
+      commission_id: '',
       course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: '',
+      rubric_number: '',
+      year: '',
       rubric_json: '',
       pdf_file: '',
     });
@@ -149,8 +200,14 @@ export const RubricsManager = () => {
     setSelectedRubric(rubric);
     setFormData({
       name: rubric.name,
-      university_id: rubric.university_id,
+      commission_id: rubric.commission_id,
       course_id: rubric.course_id,
+      career_id: rubric.career_id,
+      faculty_id: rubric.faculty_id,
+      university_id: rubric.university_id,
+      rubric_type: rubric.rubric_type,
+      rubric_number: rubric.rubric_number,
+      year: rubric.year,
       rubric_json: JSON.stringify(rubric.rubric_json, null, 2),
       pdf_file: null,
     });
@@ -162,12 +219,30 @@ export const RubricsManager = () => {
     setSelectedRubric(rubric);
     setFormData({
       name: rubric.name,
-      university_id: rubric.university_id,
+      commission_id: rubric.commission_id,
       course_id: rubric.course_id,
+      career_id: rubric.career_id,
+      faculty_id: rubric.faculty_id,
+      university_id: rubric.university_id,
+      rubric_type: rubric.rubric_type,
+      rubric_number: rubric.rubric_number,
+      year: rubric.year,
       rubric_json: JSON.stringify(rubric.rubric_json, null, 2),
       pdf_file: null,
     });
-    setFormErrors({ name: '', university_id: '', course_id: '', rubric_json: '', pdf_file: '' });
+    setFormErrors({
+      name: '',
+      commission_id: '',
+      course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: '',
+      rubric_number: '',
+      year: '',
+      rubric_json: '',
+      pdf_file: '',
+    });
     setIsModalOpen(true);
   };
 
@@ -205,15 +280,27 @@ export const RubricsManager = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      university_id: '',
+      commission_id: '',
       course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: 'tp',
+      rubric_number: 1,
+      year: new Date().getFullYear(),
       rubric_json: '',
       pdf_file: null,
     });
     setFormErrors({
       name: '',
-      university_id: '',
+      commission_id: '',
       course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: '',
+      rubric_number: '',
+      year: '',
       rubric_json: '',
       pdf_file: '',
     });
@@ -254,8 +341,14 @@ export const RubricsManager = () => {
     // Validar campos requeridos antes de generar
     const errors = {
       name: '',
-      university_id: '',
+      commission_id: '',
       course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: '',
+      rubric_number: '',
+      year: '',
       rubric_json: '',
       pdf_file: '',
     };
@@ -268,7 +361,19 @@ export const RubricsManager = () => {
 
     try {
       setGeneratingFromPDF(true);
-      setFormErrors({ name: '', university_id: '', course_id: '', rubric_json: '', pdf_file: '' });
+      setFormErrors({
+        name: '',
+        commission_id: '',
+        course_id: '',
+        career_id: '',
+        faculty_id: '',
+        university_id: '',
+        rubric_type: '',
+        rubric_number: '',
+        year: '',
+        rubric_json: '',
+        pdf_file: '',
+      });
 
       // Llamar directamente a n8n para generar el JSON
       const rubricJsonObject = await n8nService.generateRubricFromPDF(formData.pdf_file);
@@ -294,15 +399,24 @@ export const RubricsManager = () => {
     // Validar
     const errors = {
       name: '',
-      university_id: '',
+      commission_id: '',
       course_id: '',
+      career_id: '',
+      faculty_id: '',
+      university_id: '',
+      rubric_type: '',
+      rubric_number: '',
+      year: '',
       rubric_json: '',
       pdf_file: '',
     };
 
     if (!formData.name.trim()) errors.name = 'El nombre es requerido';
-    if (!formData.university_id) errors.university_id = 'La universidad es requerida';
+    if (!formData.commission_id) errors.commission_id = 'La comisión es requerida';
     if (!formData.course_id) errors.course_id = 'El curso es requerido';
+    if (!formData.career_id) errors.career_id = 'La carrera es requerida';
+    if (!formData.faculty_id) errors.faculty_id = 'La facultad es requerida';
+    if (!formData.university_id) errors.university_id = 'La universidad es requerida';
 
     // Para create-json, edit y create-pdf (ahora también requiere JSON)
     if (modalMode === 'create-json' || modalMode === 'edit' || modalMode === 'create-pdf') {
@@ -329,8 +443,14 @@ export const RubricsManager = () => {
         // Ambos modos ahora usan el mismo endpoint (con JSON ya generado)
         await rubricService.createRubric({
           name: formData.name,
-          university_id: formData.university_id,
+          commission_id: formData.commission_id,
           course_id: formData.course_id,
+          career_id: formData.career_id,
+          faculty_id: formData.faculty_id,
+          university_id: formData.university_id,
+          rubric_type: formData.rubric_type,
+          rubric_number: formData.rubric_number,
+          year: formData.year,
           rubric_json: JSON.parse(formData.rubric_json),
         });
       } else if (modalMode === 'edit' && selectedRubric) {

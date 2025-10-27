@@ -9,22 +9,25 @@ import type {
   CreateRubricForm,
   CreateRubricFromPDFForm,
   UpdateRubricForm,
+  RubricType,
 } from '../types';
+
+interface GetRubricsParams {
+  commission_id?: string;
+  course_id?: string;
+  rubric_type?: RubricType;
+  year?: number;
+  career_id?: string;
+  faculty_id?: string;
+  university_id?: string;
+}
 
 /**
  * Obtener todas las rúbricas (con filtros opcionales)
+ * @param params - Filtros opcionales: commission_id, course_id, rubric_type, year, career_id, faculty_id, university_id
  */
-export const getRubrics = async (
-  universityId?: string,
-  courseId?: string
-): Promise<Rubric[]> => {
-  const params = new URLSearchParams();
-  if (universityId) params.append('university_id', universityId);
-  if (courseId) params.append('course_id', courseId);
-
-  const url = `/api/rubrics${params.toString() ? `?${params.toString()}` : ''}`;
-
-  const response = await api.get<ApiResponse<Rubric[]>>(url);
+export const getRubrics = async (params?: GetRubricsParams): Promise<Rubric[]> => {
+  const response = await api.get<ApiResponse<Rubric[]>>('/api/rubrics', { params });
   return response.data.data || [];
 };
 
@@ -58,8 +61,14 @@ export const createRubricFromPDF = async (
 ): Promise<Rubric> => {
   const formData = new FormData();
   formData.append('name', data.name);
-  formData.append('university_id', data.university_id);
+  formData.append('commission_id', data.commission_id);
   formData.append('course_id', data.course_id);
+  formData.append('career_id', data.career_id);
+  formData.append('faculty_id', data.faculty_id);
+  formData.append('university_id', data.university_id);
+  formData.append('rubric_type', data.rubric_type);
+  formData.append('rubric_number', data.rubric_number.toString());
+  formData.append('year', data.year.toString());
   formData.append('pdf', data.pdf);
 
   const response = await api.post<ApiResponse<Rubric>>(

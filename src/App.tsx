@@ -8,6 +8,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { UserView } from './components/user/UserView';
 import { AdminPanel } from './components/admin/AdminPanel';
+import { UserProfile } from './components/profile/UserProfile';
 
 const HomePage = () => {
   return (
@@ -25,6 +26,14 @@ const AdminPage = () => {
       <div className="container mx-auto px-4 py-8">
         <AdminPanel />
       </div>
+    </Layout>
+  );
+};
+
+const ProfilePage = () => {
+  return (
+    <Layout>
+      <UserProfile />
     </Layout>
   );
 };
@@ -71,6 +80,16 @@ function App() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Ruta protegida - Perfil de usuario */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

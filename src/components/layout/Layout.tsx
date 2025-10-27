@@ -84,15 +84,21 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
                   <div className="text-left sm:text-right">
                     <p className="text-xs sm:text-sm font-medium truncate text-text-primary">{user?.username}</p>
                     <p className="text-xs text-text-tertiary capitalize">{user?.role}</p>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={handleLogout} className="flex-shrink-0">
-                    <span className="sm:hidden">Salir</span>
-                    <span className="hidden sm:inline">Cerrar Sesión</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => navigate('/profile')} className="flex-shrink-0">
+                      <span className="sm:hidden">👤</span>
+                      <span className="hidden sm:inline">👤 Mi Perfil</span>
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={handleLogout} className="flex-shrink-0">
+                      <span className="sm:hidden">Salir</span>
+                      <span className="hidden sm:inline">Cerrar Sesión</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
