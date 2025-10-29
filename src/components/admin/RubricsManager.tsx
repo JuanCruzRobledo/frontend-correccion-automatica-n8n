@@ -11,20 +11,30 @@ import { Table } from '../shared/Table';
 import { Card } from '../shared/Card';
 import rubricService from '../../services/rubricService';
 import universityService from '../../services/universityService';
+import facultyService from '../../services/facultyService';
+import careerService from '../../services/careerService';
 import courseService from '../../services/courseService';
+import commissionService from '../../services/commissionService';
 import n8nService from '../../services/n8nService';
-import type { Rubric, University, Course } from '../../types';
+import type { Rubric, University, Faculty, Career, Course, Commission } from '../../types';
 
 export const RubricsManager = () => {
   const [rubrics, setRubrics] = useState<Rubric[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   // Filtros
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
   const [filterUniversityId, setFilterUniversityId] = useState('');
+  const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterCareerId, setFilterCareerId] = useState('');
   const [filterCourseId, setFilterCourseId] = useState('');
+  const [filterCommissionId, setFilterCommissionId] = useState('');
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,47 +87,48 @@ export const RubricsManager = () => {
 
   // Cargar datos al montar
   useEffect(() => {
-    loadUniversities();
-    loadAllCourses(); // Cargar TODOS los cursos una sola vez
-    loadRubrics();
+    loadData();
   }, []);
-
-  // Reset course filter cuando cambia la universidad del filtro
-  useEffect(() => {
-    setFilterCourseId(''); // Reset course filter
-  }, [filterUniversityId]);
 
   // Recargar rúbricas cuando cambian los filtros
   useEffect(() => {
-    loadRubrics(filterUniversityId, filterCourseId);
-  }, [filterUniversityId, filterCourseId]);
+    loadRubrics();
+  }, [filterYear, filterUniversityId, filterFacultyId, filterCareerId, filterCourseId, filterCommissionId]);
 
-  const loadUniversities = async () => {
+  const loadData = async () => {
     try {
-      const data = await universityService.getUniversities();
-      setUniversities(data);
+      setLoading(true);
+      setError('');
+      const [universitiesData, facultiesData, careersData, coursesData, commissionsData] = await Promise.all([
+        universityService.getUniversities(),
+        facultyService.getFaculties(),
+        careerService.getCareers(),
+        courseService.getCourses(),
+        commissionService.getCommissions(),
+      ]);
+      setUniversities(universitiesData);
+      setFaculties(facultiesData);
+      setCareers(careersData);
+      setCourses(coursesData);
+      setCommissions(commissionsData);
     } catch (err: unknown) {
-      console.error('Error al cargar universidades:', err);
+      setError(err && typeof err === 'object' && 'message' in err ? String(err.message) : 'Error al cargar datos');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadAllCourses = async () => {
-    try {
-      // Cargar TODOS los cursos sin filtro
-      const data = await courseService.getCourses();
-      setCourses(data);
-    } catch (err: unknown) {
-      console.error('Error al cargar cursos:', err);
-    }
-  };
-
-  const loadRubrics = async (universityId?: string, courseId?: string) => {
+  const loadRubrics = async () => {
     try {
       setLoading(true);
       setError('');
       const params: any = {};
-      if (universityId) params.university_id = universityId;
-      if (courseId) params.course_id = courseId;
+      if (filterYear) params.year = parseInt(filterYear);
+      if (filterUniversityId) params.university_id = filterUniversityId;
+      if (filterFacultyId) params.faculty_id = filterFacultyId;
+      if (filterCareerId) params.career_id = filterCareerId;
+      if (filterCourseId) params.course_id = filterCourseId;
+      if (filterCommissionId) params.commission_id = filterCommissionId;
       const data = await rubricService.getRubrics(params);
       setRubrics(data);
     } catch (err: unknown) {
@@ -135,14 +146,14 @@ export const RubricsManager = () => {
     setModalMode('create-json');
     setFormData({
       name: '',
-      commission_id: '',
+      commission_id: filterCommissionId || '',
       course_id: filterCourseId || '',
-      career_id: '',
-      faculty_id: '',
+      career_id: filterCareerId || '',
+      faculty_id: filterFacultyId || '',
       university_id: filterUniversityId || '',
       rubric_type: 'tp' as const,
       rubric_number: 1,
-      year: new Date().getFullYear(),
+      year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
       rubric_json: '',
       pdf_file: null,
     });
@@ -167,14 +178,14 @@ export const RubricsManager = () => {
     setModalMode('create-pdf');
     setFormData({
       name: '',
-      commission_id: '',
+      commission_id: filterCommissionId || '',
       course_id: filterCourseId || '',
-      career_id: '',
-      faculty_id: '',
+      career_id: filterCareerId || '',
+      faculty_id: filterFacultyId || '',
       university_id: filterUniversityId || '',
       rubric_type: 'tp' as const,
       rubric_number: 1,
-      year: new Date().getFullYear(),
+      year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
       rubric_json: '',
       pdf_file: null,
     });
@@ -253,7 +264,7 @@ export const RubricsManager = () => {
 
     try {
       await rubricService.deleteRubric(rubric._id);
-      await loadRubrics(filterUniversityId, filterCourseId);
+      await loadRubrics();
     } catch (err: unknown) {
       alert(
         err && typeof err === 'object' && 'message' in err
@@ -461,7 +472,7 @@ export const RubricsManager = () => {
       }
 
       setIsModalOpen(false);
-      await loadRubrics(filterUniversityId, filterCourseId);
+      await loadRubrics();
     } catch (err: unknown) {
       alert(
         err && typeof err === 'object' && 'message' in err
@@ -484,16 +495,25 @@ export const RubricsManager = () => {
     return course ? course.name : courseId;
   };
 
+  const getCommissionName = (commissionId: string) => {
+    const commission = commissions.find((c) => c.commission_id === commissionId);
+    return commission ? commission.name : commissionId;
+  };
+
   // Columnas de la tabla
   const columns = [
     { header: 'Nombre', accessor: 'name' as keyof Rubric },
     {
-      header: 'Universidad',
-      accessor: (row: Rubric) => getUniversityName(row.university_id),
+      header: 'Materia',
+      accessor: (row: Rubric) => getCourseName(row.course_id),
     },
     {
-      header: 'Curso',
-      accessor: (row: Rubric) => getCourseName(row.course_id),
+      header: 'Comisión',
+      accessor: (row: Rubric) => getCommissionName(row.commission_id),
+    },
+    {
+      header: 'Año',
+      accessor: (row: Rubric) => row.year,
     },
     {
       header: 'Fuente',
@@ -531,17 +551,50 @@ export const RubricsManager = () => {
     },
   ];
 
-  // Filtrar cursos en memoria según universidad seleccionada en filtros
-  // Solo muestra cursos de la universidad seleccionada
-  const filteredCoursesForFilter = filterUniversityId
-    ? courses.filter((c) => c.university_id === filterUniversityId)
+  // Años disponibles para el filtro
+  const availableYears = Array.from(
+    new Set(courses.map(c => c.year).filter((year): year is number => year !== undefined))
+  ).sort((a, b) => b - a);
+
+  // Facultades filtradas para el filtro principal
+  const filteredFacultiesForFilter = filterUniversityId
+    ? faculties.filter(f => f.university_id === filterUniversityId)
+    : faculties;
+
+  // Carreras filtradas para el filtro principal
+  const filteredCareersForFilter = filterFacultyId
+    ? careers.filter(c => c.faculty_id === filterFacultyId)
+    : careers;
+
+  // Materias filtradas para el filtro principal
+  const filteredCoursesForFilter = filterCareerId
+    ? courses.filter(c => c.career_id === filterCareerId && c.year?.toString() === filterYear)
+    : courses.filter(c => c.year?.toString() === filterYear);
+
+  // Comisiones filtradas para el filtro principal
+  const filteredCommissionsForFilter = filterCourseId
+    ? commissions.filter(c => c.course_id === filterCourseId && c.year?.toString() === filterYear)
+    : commissions.filter(c => c.year?.toString() === filterYear);
+
+  // Datos en cascada para el modal
+  const filteredFacultiesForModal = formData.university_id
+    ? faculties.filter(f => f.university_id === formData.university_id)
     : [];
 
-  // Filtrar cursos en memoria según universidad seleccionada en formulario
-  // Solo muestra cursos de la universidad seleccionada
-  const filteredCoursesForForm = formData.university_id
-    ? courses.filter((c) => c.university_id === formData.university_id)
+  const filteredCareersForModal = formData.faculty_id
+    ? careers.filter(c => c.faculty_id === formData.faculty_id)
     : [];
+
+  const filteredCoursesForModal = formData.career_id
+    ? courses.filter(c => c.career_id === formData.career_id && c.year === formData.year)
+    : [];
+
+  const filteredCommissionsForModal = formData.course_id
+    ? commissions.filter(c => c.course_id === formData.course_id && c.year === formData.year)
+    : [];
+
+  // Verificar si todos los filtros están seleccionados
+  const allFiltersSelected = filterYear && filterUniversityId && filterFacultyId && filterCareerId && filterCourseId && filterCommissionId;
 
   return (
     <Card title="Gestión de Rúbricas">
@@ -558,29 +611,153 @@ export const RubricsManager = () => {
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Select
-            options={universities.map((u) => ({
-              value: u.university_id,
-              label: u.name,
-            }))}
-            value={filterUniversityId}
-            onChange={(e) => setFilterUniversityId(e.target.value)}
-            placeholder="Filtrar por universidad"
-            className="w-full sm:w-64"
-          />
-          <Select
-            options={filteredCoursesForFilter.map((c) => ({
-              value: c.course_id,
-              label: c.name,
-            }))}
-            value={filterCourseId}
-            onChange={(e) => setFilterCourseId(e.target.value)}
-            placeholder="Filtrar por curso"
-            className="w-full sm:w-64"
-            disabled={!filterUniversityId}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Año *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+              value={filterYear}
+              onChange={(e) => {
+                setFilterYear(e.target.value);
+                setFilterFacultyId('');
+                setFilterCareerId('');
+                setFilterCourseId('');
+                setFilterCommissionId('');
+              }}
+            >
+              <option value="">Seleccionar año...</option>
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Universidad *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterUniversityId}
+              onChange={(e) => {
+                setFilterUniversityId(e.target.value);
+                setFilterFacultyId('');
+                setFilterCareerId('');
+                setFilterCourseId('');
+                setFilterCommissionId('');
+              }}
+              disabled={!filterYear}
+            >
+              <option value="">Seleccionar universidad...</option>
+              {universities.map((uni) => (
+                <option key={uni._id} value={uni.university_id}>
+                  {uni.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Facultad *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterFacultyId}
+              onChange={(e) => {
+                setFilterFacultyId(e.target.value);
+                setFilterCareerId('');
+                setFilterCourseId('');
+                setFilterCommissionId('');
+              }}
+              disabled={!filterUniversityId}
+            >
+              <option value="">Seleccionar facultad...</option>
+              {filteredFacultiesForFilter.map((faculty) => (
+                <option key={faculty._id} value={faculty.faculty_id}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Carrera *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterCareerId}
+              onChange={(e) => {
+                setFilterCareerId(e.target.value);
+                setFilterCourseId('');
+                setFilterCommissionId('');
+              }}
+              disabled={!filterFacultyId}
+            >
+              <option value="">Seleccionar carrera...</option>
+              {filteredCareersForFilter.map((career) => (
+                <option key={career._id} value={career.career_id}>
+                  {career.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Materia *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterCourseId}
+              onChange={(e) => {
+                setFilterCourseId(e.target.value);
+                setFilterCommissionId('');
+              }}
+              disabled={!filterCareerId}
+            >
+              <option value="">Seleccionar materia...</option>
+              {filteredCoursesForFilter.map((course) => (
+                <option key={course._id} value={course.course_id}>
+                  {course.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Comisión *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterCommissionId}
+              onChange={(e) => setFilterCommissionId(e.target.value)}
+              disabled={!filterCourseId}
+            >
+              <option value="">Seleccionar comisión...</option>
+              {filteredCommissionsForFilter.map((commission) => (
+                <option key={commission._id} value={commission.commission_id}>
+                  {commission.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Mensaje cuando no están todos los filtros seleccionados */}
+        {!allFiltersSelected && (
+          <div className="mt-3 bg-accent-1/10 border border-accent-1/50 rounded-xl p-3">
+            <p className="text-accent-1 text-sm">
+              📋 Por favor, selecciona todos los filtros (Año, Universidad, Facultad, Carrera, Materia y Comisión) para ver las rúbricas.
+            </p>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -594,13 +771,13 @@ export const RubricsManager = () => {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent-1"></div>
           <p className="text-text-disabled mt-2">Cargando...</p>
         </div>
-      ) : (
+      ) : allFiltersSelected ? (
         <Table
           data={rubrics}
           columns={columns}
-          emptyMessage="No hay rúbricas registradas"
+          emptyMessage="No hay rúbricas registradas para los filtros seleccionados"
         />
-      )}
+      ) : null}
 
       {/* Modal Crear/Editar/Ver */}
       <Modal
@@ -631,35 +808,136 @@ export const RubricsManager = () => {
             disabled={modalMode === 'view'}
           />
 
-          <Select
-            label="Universidad"
-            options={universities.map((u) => ({
-              value: u.university_id,
-              label: u.name,
-            }))}
-            value={formData.university_id}
-            onChange={(e) => {
-              setFormData({ ...formData, university_id: e.target.value, course_id: '' });
-            }}
-            error={formErrors.university_id}
-            placeholder="Selecciona una universidad"
-            disabled={modalMode === 'view' || modalMode === 'edit'}
-          />
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Universidad *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+              value={formData.university_id}
+              onChange={(e) => setFormData({ ...formData, university_id: e.target.value, faculty_id: '', career_id: '', course_id: '', commission_id: '' })}
+              disabled={modalMode === 'view' || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar universidad...</option>
+              {universities.map((uni) => (
+                <option key={uni._id} value={uni.university_id}>
+                  {uni.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.university_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
+            )}
+          </div>
 
-          <Select
-            label="Curso"
-            options={filteredCoursesForForm.map((c) => ({
-              value: c.course_id,
-              label: c.name,
-            }))}
-            value={formData.course_id}
-            onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
-            error={formErrors.course_id}
-            placeholder="Selecciona un curso"
-            disabled={
-              !formData.university_id || modalMode === 'view' || modalMode === 'edit'
-            }
-          />
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Facultad *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={formData.faculty_id}
+              onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value, career_id: '', course_id: '', commission_id: '' })}
+              disabled={!formData.university_id || modalMode === 'view' || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar facultad...</option>
+              {filteredFacultiesForModal.map((faculty) => (
+                <option key={faculty._id} value={faculty.faculty_id}>
+                  {faculty.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.faculty_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.faculty_id}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Carrera *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={formData.career_id}
+              onChange={(e) => setFormData({ ...formData, career_id: e.target.value, course_id: '', commission_id: '' })}
+              disabled={!formData.faculty_id || modalMode === 'view' || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar carrera...</option>
+              {filteredCareersForModal.map((career) => (
+                <option key={career._id} value={career.career_id}>
+                  {career.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.career_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.career_id}</p>
+            )}
+          </div>
+
+          <div>
+            <Input
+              label="Año *"
+              type="number"
+              placeholder="2025"
+              value={formData.year.toString()}
+              onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear(), course_id: '', commission_id: '' })}
+              error={formErrors.year}
+              disabled={modalMode === 'view' || modalMode === 'edit'}
+            />
+            {(modalMode === 'edit' || modalMode === 'view') && (
+              <p className="mt-1 text-xs text-text-disabled">El año no se puede modificar</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Materia *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={formData.course_id}
+              onChange={(e) => setFormData({ ...formData, course_id: e.target.value, commission_id: '' })}
+              disabled={!formData.career_id || modalMode === 'view' || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar materia...</option>
+              {filteredCoursesForModal.map((course) => (
+                <option key={course._id} value={course.course_id}>
+                  {course.name} ({course.year})
+                </option>
+              ))}
+            </select>
+            {formErrors.course_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.course_id}</p>
+            )}
+            {(modalMode === 'edit' || modalMode === 'view') && (
+              <p className="mt-1 text-xs text-text-disabled">La materia no se puede modificar</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Comisión *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={formData.commission_id}
+              onChange={(e) => setFormData({ ...formData, commission_id: e.target.value })}
+              disabled={!formData.course_id || modalMode === 'view' || modalMode === 'edit'}
+            >
+              <option value="">Seleccionar comisión...</option>
+              {filteredCommissionsForModal.map((commission) => (
+                <option key={commission._id} value={commission.commission_id}>
+                  {commission.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.commission_id && (
+              <p className="mt-1 text-xs text-danger-1">{formErrors.commission_id}</p>
+            )}
+            {(modalMode === 'edit' || modalMode === 'view') && (
+              <p className="mt-1 text-xs text-text-disabled">La comisión no se puede modificar</p>
+            )}
+          </div>
 
           {modalMode === 'create-pdf' && (
             <div>
