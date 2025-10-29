@@ -29,6 +29,7 @@ export const CommissionsManager = () => {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
   const [filterUniversityId, setFilterUniversityId] = useState('');
   const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterCareerId, setFilterCareerId] = useState('');
   const [filterCourseId, setFilterCourseId] = useState('');
 
   // Modal states
@@ -158,14 +159,11 @@ export const CommissionsManager = () => {
   const handleCreate = () => {
     setModalMode('create');
     // Pre-llenar con valores de filtros
-    // Encontrar la carrera del curso seleccionado
-    const selectedCourse = filterCourseId ? courses.find(c => c.course_id === filterCourseId) : null;
-
     setFormData({
       commission_id: '',
       name: '',
       course_id: filterCourseId || '',
-      career_id: selectedCourse?.career_id || '',
+      career_id: filterCareerId || '',
       faculty_id: filterFacultyId || '',
       university_id: filterUniversityId || '',
       professor_name: '',
@@ -295,6 +293,7 @@ export const CommissionsManager = () => {
     if (filterYear && commission.year.toString() !== filterYear) return false;
     if (filterUniversityId && commission.university_id !== filterUniversityId) return false;
     if (filterFacultyId && commission.faculty_id !== filterFacultyId) return false;
+    if (filterCareerId && commission.career_id !== filterCareerId) return false;
     if (filterCourseId && commission.course_id !== filterCourseId) return false;
     return true;
   });
@@ -310,8 +309,8 @@ export const CommissionsManager = () => {
     : careers;
 
   // Cursos filtrados para el filtro principal
-  const filteredCoursesForFilter = filterFacultyId
-    ? courses.filter(c => c.faculty_id === filterFacultyId && c.year?.toString() === filterYear)
+  const filteredCoursesForFilter = filterCareerId
+    ? courses.filter(c => c.career_id === filterCareerId && c.year?.toString() === filterYear)
     : courses.filter(c => c.year?.toString() === filterYear);
 
   // Datos en cascada para el modal
@@ -333,7 +332,7 @@ export const CommissionsManager = () => {
   ).sort((a, b) => b - a);
 
   // Verificar si todos los filtros están seleccionados
-  const allFiltersSelected = filterYear && filterUniversityId && filterFacultyId && filterCourseId;
+  const allFiltersSelected = filterYear && filterUniversityId && filterFacultyId && filterCareerId && filterCourseId;
 
   // Columnas de la tabla
   const columns = [
@@ -380,7 +379,7 @@ export const CommissionsManager = () => {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
               Año *
@@ -391,6 +390,7 @@ export const CommissionsManager = () => {
               onChange={(e) => {
                 setFilterYear(e.target.value);
                 setFilterFacultyId('');
+                setFilterCareerId('');
                 setFilterCourseId('');
               }}
             >
@@ -413,6 +413,7 @@ export const CommissionsManager = () => {
               onChange={(e) => {
                 setFilterUniversityId(e.target.value);
                 setFilterFacultyId('');
+                setFilterCareerId('');
                 setFilterCourseId('');
               }}
               disabled={!filterYear}
@@ -435,6 +436,7 @@ export const CommissionsManager = () => {
               value={filterFacultyId}
               onChange={(e) => {
                 setFilterFacultyId(e.target.value);
+                setFilterCareerId('');
                 setFilterCourseId('');
               }}
               disabled={!filterUniversityId}
@@ -450,13 +452,35 @@ export const CommissionsManager = () => {
 
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
+              Carrera *
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+              value={filterCareerId}
+              onChange={(e) => {
+                setFilterCareerId(e.target.value);
+                setFilterCourseId('');
+              }}
+              disabled={!filterFacultyId}
+            >
+              <option value="">Seleccionar carrera...</option>
+              {filteredCareersForFilter.map((career) => (
+                <option key={career._id} value={career.career_id}>
+                  {career.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
               Materia *
             </label>
             <select
               className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
               value={filterCourseId}
               onChange={(e) => setFilterCourseId(e.target.value)}
-              disabled={!filterFacultyId}
+              disabled={!filterCareerId}
             >
               <option value="">Seleccionar materia...</option>
               {filteredCoursesForFilter.map((course) => (
@@ -472,7 +496,7 @@ export const CommissionsManager = () => {
         {!allFiltersSelected && (
           <div className="mt-3 bg-accent-1/10 border border-accent-1/50 rounded-xl p-3">
             <p className="text-accent-1 text-sm">
-              📋 Por favor, selecciona todos los filtros (Año, Universidad, Facultad y Materia) para ver las comisiones.
+              📋 Por favor, selecciona todos los filtros (Año, Universidad, Facultad, Carrera y Materia) para ver las comisiones.
             </p>
           </div>
         )}
