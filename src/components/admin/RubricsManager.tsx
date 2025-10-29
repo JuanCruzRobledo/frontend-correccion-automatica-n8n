@@ -573,8 +573,14 @@ export const RubricsManager = () => {
 
   // Comisiones filtradas para el filtro principal
   const filteredCommissionsForFilter = filterCourseId
-    ? commissions.filter(c => c.course_id === filterCourseId && c.year?.toString() === filterYear)
-    : commissions.filter(c => c.year?.toString() === filterYear);
+    ? commissions.filter(c =>
+        c.course_id === filterCourseId &&
+        c.career_id === filterCareerId &&
+        c.faculty_id === filterFacultyId &&
+        c.university_id === filterUniversityId &&
+        c.year?.toString() === filterYear
+      )
+    : [];
 
   // Datos en cascada para el modal
   const filteredFacultiesForModal = formData.university_id
@@ -590,7 +596,13 @@ export const RubricsManager = () => {
     : [];
 
   const filteredCommissionsForModal = formData.course_id
-    ? commissions.filter(c => c.course_id === formData.course_id && c.year === formData.year)
+    ? commissions.filter(c =>
+        c.course_id === formData.course_id &&
+        c.career_id === formData.career_id &&
+        c.faculty_id === formData.faculty_id &&
+        c.university_id === formData.university_id &&
+        c.year === formData.year
+      )
     : [];
 
   // Verificar si todos los filtros están seleccionados
