@@ -161,6 +161,7 @@ export interface UserProfile {
   username: string;
   role: 'admin' | 'user';
   hasGeminiApiKey: boolean;
+  gemini_api_key?: string | null; // API key desencriptada
   gemini_api_key_last_4?: string;
   gemini_api_key_configured_at?: string;
   gemini_api_key_last_validated?: string;

@@ -43,6 +43,7 @@ export const UserView = () => {
   // Estado para corrección automática masiva
   const [isBatchGrading, setIsBatchGrading] = useState(false);
   const [batchGradingResult, setBatchGradingResult] = useState('');
+  const [batchGradingDriveLink, setBatchGradingDriveLink] = useState('');
   const [batchGradingError, setBatchGradingError] = useState('');
 
   // Archivo a corregir (para corrección manual)
@@ -76,62 +77,76 @@ export const UserView = () => {
 
   // Cargar facultades cuando cambia la universidad
   useEffect(() => {
-    if (selectedUniversityId) {
-      loadFaculties(selectedUniversityId);
-    } else {
-      setFaculties([]);
-    }
+    // Siempre limpiar primero
+    setFaculties([]);
+    setCareers([]);
+    setCourses([]);
+    setCommissions([]);
+    setRubrics([]);
     setSelectedFacultyId('');
     setSelectedCareerId('');
     setSelectedCourseId('');
     setSelectedCommissionId('');
     setSelectedRubricId('');
+    
+    if (selectedUniversityId) {
+      loadFaculties(selectedUniversityId);
+    }
   }, [selectedUniversityId]);
 
   // Cargar carreras cuando cambia la facultad
   useEffect(() => {
-    if (selectedFacultyId) {
-      loadCareers(selectedFacultyId);
-    } else {
-      setCareers([]);
-    }
+    // Siempre limpiar primero
+    setCareers([]);
+    setCourses([]);
+    setCommissions([]);
+    setRubrics([]);
     setSelectedCareerId('');
     setSelectedCourseId('');
     setSelectedCommissionId('');
     setSelectedRubricId('');
+    
+    if (selectedFacultyId) {
+      loadCareers(selectedFacultyId);
+    }
   }, [selectedFacultyId]);
 
   // Cargar cursos cuando cambia la carrera
   useEffect(() => {
-    if (selectedCareerId) {
-      loadCourses(selectedCareerId);
-    } else {
-      setCourses([]);
-    }
+    // Siempre limpiar primero
+    setCourses([]);
+    setCommissions([]);
+    setRubrics([]);
     setSelectedCourseId('');
     setSelectedCommissionId('');
     setSelectedRubricId('');
+    
+    if (selectedCareerId) {
+      loadCourses(selectedCareerId);
+    }
   }, [selectedCareerId]);
 
   // Cargar comisiones cuando cambia el curso
   useEffect(() => {
-    if (selectedCourseId) {
-      loadCommissions(selectedCourseId);
-    } else {
-      setCommissions([]);
-    }
+    // Siempre limpiar primero
+    setCommissions([]);
     setSelectedCommissionId('');
     setSelectedRubricId('');
+    
+    if (selectedCourseId) {
+      loadCommissions(selectedCourseId);
+    }
   }, [selectedCourseId]);
 
   // Cargar rúbricas cuando cambia la comisión
   useEffect(() => {
+    // Siempre limpiar primero
+    setRubrics([]);
+    setSelectedRubricId('');
+    
     if (selectedCommissionId) {
       loadRubrics(selectedCommissionId);
-    } else {
-      setRubrics([]);
     }
-    setSelectedRubricId('');
   }, [selectedCommissionId]);
 
   const loadProfile = async () => {
@@ -185,7 +200,11 @@ export const UserView = () => {
 
   const loadCommissions = async (courseId: string) => {
     try {
-      const data = await commissionService.getCommissions({ course_id: courseId });
+      // Pasar también career_id para evitar duplicados entre carreras
+      const data = await commissionService.getCommissions({ 
+        course_id: courseId,
+        career_id: selectedCareerId 
+      });
       setCommissions(data);
     } catch (err) {
       console.error('Error al cargar comisiones:', err);
@@ -194,7 +213,12 @@ export const UserView = () => {
 
   const loadRubrics = async (commissionId: string) => {
     try {
-      const data = await rubricService.getRubrics({ commission_id: commissionId });
+      // Pasar toda la jerarquía académica para evitar duplicados
+      const data = await rubricService.getRubrics({ 
+        commission_id: commissionId,
+        career_id: selectedCareerId,
+        course_id: selectedCourseId 
+      });
       setRubrics(data);
     } catch (err) {
       console.error('Error al cargar rúbricas:', err);
@@ -422,10 +446,17 @@ export const UserView = () => {
       return;
     }
 
+    // Verificar que tiene API key
+    if (!hasApiKey || !userProfile?.gemini_api_key) {
+      setBatchGradingError('Debes configurar tu API Key de Gemini en tu perfil antes de corregir.');
+      return;
+    }
+
     try {
       setIsBatchGrading(true);
       setBatchGradingError('');
       setBatchGradingResult('');
+      setBatchGradingDriveLink('');
 
       // Obtener la rúbrica seleccionada
       const rubric = rubrics.find((r) => r._id === selectedRubricId);
@@ -446,13 +477,20 @@ export const UserView = () => {
         commission_id: selectedCommissionId,
         rubric_id: selectedRubricId,
         rubric_json: rubric.rubric_json,
+        gemini_api_key: userProfile.gemini_api_key, // Enviar API key del usuario
       });
 
-      // Extraer resultado (esperamos algo como { success: true, count: 15, message: "..." })
-      const { count, message } = response.data;
-      setBatchGradingResult(
-        `✅ Se corrigieron exitosamente ${count} estudiante${count !== 1 ? 's' : ''}.${message ? ` ${message}` : ''}`
-      );
+      // Extraer resultado (esperamos { drive_link: "...", alumnos_corregidos: 2 })
+      const { drive_link, alumnos_corregidos } = response.data;
+      
+      // Construir mensaje de éxito
+      const resultMessage = `✅ Se corrigieron exitosamente ${alumnos_corregidos} estudiante${alumnos_corregidos !== 1 ? 's' : ''}.`;
+      
+      setBatchGradingResult(resultMessage);
+      
+      if (drive_link) {
+        setBatchGradingDriveLink(drive_link);
+      }
     } catch (err: unknown) {
       setBatchGradingError(
         err && typeof err === 'object' && 'message' in err
@@ -662,7 +700,17 @@ export const UserView = () => {
 
             {batchGradingResult && (
               <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-400 shadow-inner">
-                <strong className="block">{batchGradingResult}</strong>
+                <strong className="block mb-2">{batchGradingResult}</strong>
+                {batchGradingDriveLink && (
+                  <a 
+                    href={batchGradingDriveLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-emerald-300 hover:text-emerald-200 underline"
+                  >
+                    🔗 Link de google drive
+                  </a>
+                )}
               </div>
             )}
 
