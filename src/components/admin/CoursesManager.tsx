@@ -38,7 +38,7 @@ export const CoursesManager = () => {
   const [formData, setFormData] = useState({
     course_id: '',
     name: '',
-    year: 1,
+    year: new Date().getFullYear(), // Año actual por defecto
     career_id: '',
     faculty_id: '',
     university_id: '',
@@ -113,15 +113,15 @@ export const CoursesManager = () => {
     }
   }, [formData.faculty_id, careers, formData.career_id]);
 
-  // Auto-sugerir ID cuando cambia el nombre o la universidad (solo en modo creación)
+  // Auto-sugerir ID cuando cambia el nombre, año o universidad (solo en modo creación)
   useEffect(() => {
-    if (modalMode === 'create' && formData.name.trim() && formData.university_id) {
-      const suggestion = suggestCourseId(formData.university_id, formData.name);
+    if (modalMode === 'create' && formData.name.trim() && formData.year) {
+      const suggestion = suggestCourseId(formData.year, formData.name);
       setSuggestedId(suggestion);
     } else {
       setSuggestedId('');
     }
-  }, [formData.name, formData.university_id, modalMode]);
+  }, [formData.name, formData.year, modalMode]);
 
   // Validar ID duplicado con debounce (solo en modo creación)
   useEffect(() => {
@@ -208,7 +208,7 @@ export const CoursesManager = () => {
     setFormData({
       course_id: '',
       name: '',
-      year: 1,
+      year: new Date().getFullYear(), // Año actual por defecto
       career_id: filterCareerId || '',
       faculty_id: filterFacultyId || '',
       university_id: filterUniversityId || '',
@@ -262,7 +262,7 @@ export const CoursesManager = () => {
     const errors = { course_id: '', name: '', year: '', career_id: '', faculty_id: '', university_id: '' };
     if (!formData.course_id.trim()) errors.course_id = 'El ID es requerido';
     if (!formData.name.trim()) errors.name = 'El nombre es requerido';
-    if (!formData.year || formData.year < 1 || formData.year > 6) errors.year = 'El año debe estar entre 1 y 6';
+    if (!formData.year || formData.year < 2020 || formData.year > 2100) errors.year = 'El año debe estar entre 2020 y 2100';
     if (!formData.career_id) errors.career_id = 'La carrera es requerida';
     if (!formData.faculty_id) errors.faculty_id = 'La facultad es requerida';
     if (!formData.university_id) errors.university_id = 'La universidad es requerida';
@@ -305,7 +305,7 @@ export const CoursesManager = () => {
   const columns = [
     { header: 'ID', accessor: 'course_id' as keyof Course },
     { header: 'Nombre', accessor: 'name' as keyof Course },
-    { header: 'Año', accessor: (row: Course) => `${row.year}°` },
+    { header: 'Año', accessor: 'year' as keyof Course },
     {
       header: 'Carrera',
       accessor: (row: Course) => {
@@ -573,13 +573,14 @@ export const CoursesManager = () => {
               value={formData.year}
               onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
             >
-              {[1, 2, 3, 4, 5, 6].map(year => (
-                <option key={year} value={year}>{year}° año</option>
+              {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                <option key={year} value={year}>{year}</option>
               ))}
             </select>
             {formErrors.year && (
               <p className="mt-1 text-xs text-danger-1">{formErrors.year}</p>
             )}
+            <p className="mt-1 text-xs text-text-disabled">Año calendario del curso</p>
           </div>
 
           <div>

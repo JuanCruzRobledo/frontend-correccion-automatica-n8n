@@ -67,19 +67,19 @@ export const suggestUniversityId = (name: string): string => {
 
 /**
  * Genera un ID sugerido para curso/materia
- * Ej: universityId="utn-frm", courseName="Base de Datos 1" → "utn-frm-base-de-datos-1"
+ * Ej: year=2025, courseName="Programación 1" → "2025-programacion-1"
  *
- * @param universityId - ID de la universidad
+ * @param year - Año del curso (YYYY)
  * @param courseName - Nombre del curso
  * @returns ID sugerido
  */
-export const suggestCourseId = (universityId: string, courseName: string): string => {
+export const suggestCourseId = (year: number | string, courseName: string): string => {
   if (!courseName) return '';
 
   const courseSlug = generateSlug(courseName, 40);
 
-  if (universityId) {
-    return `${universityId}-${courseSlug}`;
+  if (year) {
+    return `${year}-${courseSlug}`;
   }
 
   return courseSlug;
