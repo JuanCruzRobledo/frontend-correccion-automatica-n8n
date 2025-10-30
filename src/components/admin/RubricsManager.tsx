@@ -951,6 +951,50 @@ export const RubricsManager = () => {
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Tipo de Rúbrica *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={formData.rubric_type}
+                onChange={(e) => setFormData({ ...formData, rubric_type: e.target.value as import('../../types').RubricType })}
+                disabled={modalMode === 'view' || modalMode === 'edit'}
+              >
+                <option value="tp">TP - Trabajo Práctico</option>
+                <option value="parcial-1">Parcial 1</option>
+                <option value="parcial-2">Parcial 2</option>
+                <option value="recuperatorio-1">Recuperatorio 1</option>
+                <option value="recuperatorio-2">Recuperatorio 2</option>
+                <option value="final">Final</option>
+                <option value="global">Global</option>
+              </select>
+              {formErrors.rubric_type && (
+                <p className="mt-1 text-xs text-danger-1">{formErrors.rubric_type}</p>
+              )}
+              {(modalMode === 'edit' || modalMode === 'view') && (
+                <p className="mt-1 text-xs text-text-disabled">El tipo no se puede modificar</p>
+              )}
+            </div>
+
+            <div>
+              <Input
+                label="Número de Rúbrica *"
+                type="number"
+                min={1}
+                placeholder="1"
+                value={formData.rubric_number.toString()}
+                onChange={(e) => setFormData({ ...formData, rubric_number: parseInt(e.target.value) || 1 })}
+                error={formErrors.rubric_number}
+                disabled={modalMode === 'view' || modalMode === 'edit'}
+              />
+              {(modalMode === 'edit' || modalMode === 'view') && (
+                <p className="mt-1 text-xs text-text-disabled">El número no se puede modificar</p>
+              )}
+            </div>
+          </div>
+
           {modalMode === 'create-pdf' && (
             <div>
               <label className="block text-sm font-medium text-text-tertiary mb-2">
