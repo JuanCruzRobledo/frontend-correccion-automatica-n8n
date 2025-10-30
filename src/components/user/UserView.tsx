@@ -290,48 +290,33 @@ export const UserView = () => {
         throw new Error('Rúbrica no encontrada');
       }
 
-      // Obtener nombres completos de las entidades seleccionadas
-      const university = universities.find(u => u.university_id === selectedUniversityId);
-      const faculty = faculties.find(f => f.faculty_id === selectedFacultyId);
-      const career = careers.find(c => c.career_id === selectedCareerId);
-      const course = courses.find(c => c.course_id === selectedCourseId);
-      const commission = commissions.find(c => c.commission_id === selectedCommissionId);
-
-      if (!university || !faculty || !career || !course || !commission) {
-        throw new Error('Faltan datos de la jerarquía académica');
-      }
-
-      // Preparar FormData con el nuevo formato
+      // Preparar FormData para enviar directamente a n8n
       const formData = new FormData();
-
-      // Strings requeridos
-      formData.append('universidad', university.name);
-      formData.append('facultad', faculty.name);
-      formData.append('carrera', career.name);
-      formData.append('materia', course.name);
-      formData.append('comision', commission.name);
-      formData.append('nombre_rubrica', rubric.name);
 
       // JSON: rúbrica completa
       const rubricBlob = new Blob([JSON.stringify(rubric.rubric_json)], {
         type: 'application/json',
       });
-      formData.append('rubrica', rubricBlob, 'rubrica.json');
+      formData.append('rubric', rubricBlob, 'rubrica.json');
 
       // Archivo binario: examen a corregir
-      formData.append('examen', submissionFile);
+      formData.append('submission', submissionFile);
 
-      // Llamar al endpoint del backend (que actuará como proxy y agregará la API key)
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await axios.post(`${API_URL}/api/grade`, formData, {
+      // Llamar directamente al webhook de n8n
+      const gradingWebhookUrl = import.meta.env.VITE_GRADING_WEBHOOK_URL || '';
+
+      if (!gradingWebhookUrl) {
+        throw new Error('Debes configurar la variable VITE_GRADING_WEBHOOK_URL en tu archivo .env');
+      }
+
+      const response = await axios.post(gradingWebhookUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Para autenticación
         },
       });
 
-      // Extraer resultado (viene en response.data.data porque el backend devuelve {success, data})
-      const resultData = response.data.data || response.data;
+      // Extraer resultado
+      const resultData = response.data;
       const result =
         typeof resultData === 'string' ? resultData : JSON.stringify(resultData);
 
