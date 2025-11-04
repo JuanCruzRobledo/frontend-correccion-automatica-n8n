@@ -99,12 +99,14 @@ export const Login = () => {
 
           <div className="mt-6 pt-6 border-t border-border-primary/60">
             <p className="text-sm text-text-tertiary text-center">
-              Usuarios de prueba:
+              ¿No tienes una cuenta?{' '}
+              <a
+                href="/register"
+                className="text-accent-1 hover:text-accent-2 transition-colors font-medium"
+              >
+                Regístrate
+              </a>
             </p>
-            <div className="mt-2 space-y-1 text-xs text-text-disabled text-center">
-              <p>Admin: <code className="text-accent-1">admin / admin123</code></p>
-              <p>Usuario: <code className="text-accent-1">usuario / usuario123</code></p>
-            </div>
           </div>
         </Card>
       </div>

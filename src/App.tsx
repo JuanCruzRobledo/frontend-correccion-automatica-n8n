@@ -4,6 +4,7 @@
  */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/auth/Login';
+import { Register } from './components/auth/Register';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { UserView } from './components/user/UserView';
@@ -61,8 +62,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta pública - Login */}
+        {/* Rutas públicas */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Ruta protegida - Home (usuario normal o admin) */}
         <Route
