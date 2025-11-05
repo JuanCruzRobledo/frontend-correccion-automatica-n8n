@@ -10,6 +10,7 @@ import { Layout } from './components/layout/Layout';
 import { UserView } from './components/user/UserView';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { UserProfile } from './components/profile/UserProfile';
+import { ProjectConsolidator } from './components/shared/ProjectConsolidator';
 
 const HomePage = () => {
   return (
@@ -35,6 +36,14 @@ const ProfilePage = () => {
   return (
     <Layout>
       <UserProfile />
+    </Layout>
+  );
+};
+
+const ConsolidatorPage = () => {
+  return (
+    <Layout>
+      <ProjectConsolidator />
     </Layout>
   );
 };
@@ -65,6 +74,7 @@ function App() {
         {/* Rutas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/consolidator" element={<ConsolidatorPage />} />
 
         {/* Ruta protegida - Home (usuario normal o admin) */}
         <Route

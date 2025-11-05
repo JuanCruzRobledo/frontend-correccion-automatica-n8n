@@ -61,18 +61,44 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
 
               {/* Navigation & User info & Logout */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-                {/* Botones de navegación para admin */}
-                {user?.role === 'admin' && (
-                  <div className="flex items-center gap-2 sm:mr-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => navigate('/admin')}
-                      className="flex-1 sm:flex-none"
-                    >
-                      <span className="sm:hidden">👨‍💼 Admin</span>
-                      <span className="hidden sm:inline">👨‍💼 Admin Panel</span>
-                    </Button>
+                {/* Botones de navegación */}
+                <div className="flex items-center gap-2 sm:mr-2">
+                  {/* Botón Consolidador - Visible para todos */}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate('/consolidator')}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <span className="sm:hidden">📦</span>
+                    <span className="hidden sm:inline">📦 Consolidador</span>
+                  </Button>
+
+                  {/* Botones de admin */}
+                  {user?.role === 'admin' && (
+                    <>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => navigate('/admin')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <span className="sm:hidden">👨‍💼 Admin</span>
+                        <span className="hidden sm:inline">👨‍💼 Admin Panel</span>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => navigate('/')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        🏠 Inicio
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Botón Inicio para usuarios normales */}
+                  {user?.role !== 'admin' && (
                     <Button
                       variant="secondary"
                       size="sm"
@@ -81,8 +107,8 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                     >
                       🏠 Inicio
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
                   <div className="text-left sm:text-right">
