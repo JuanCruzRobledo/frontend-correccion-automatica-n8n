@@ -10,6 +10,7 @@ import type { User, ApiResponse } from '../types';
  */
 export interface CreateUserForm {
   username: string;
+  name: string;
   password: string;
   role: 'admin' | 'user';
 }
@@ -19,6 +20,7 @@ export interface CreateUserForm {
  */
 export interface UpdateUserForm {
   username?: string;
+  name?: string;
   password?: string;
   role?: 'admin' | 'user';
 }

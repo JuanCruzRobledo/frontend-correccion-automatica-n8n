@@ -15,6 +15,7 @@ export const Register = () => {
   const { login } = useAuth();
 
   const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -62,8 +63,8 @@ export const Register = () => {
     setLoading(true);
 
     try {
-      // Registrar usuario (solo enviar username y password, el backend asigna rol 'user')
-      await authService.register({ username: username.toLowerCase(), password });
+      // Registrar usuario (solo enviar username, name y password, el backend asigna rol 'user')
+      await authService.register({ username: username.toLowerCase(), name, password });
 
       // Login automático después del registro
       await login({ username: username.toLowerCase(), password });
@@ -122,6 +123,16 @@ export const Register = () => {
               required
               autoComplete="username"
               helperText="Solo letras minúsculas, números, guiones y guiones bajos"
+            />
+
+            <Input
+              label="Nombre completo"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Tu nombre completo"
+              required
+              autoComplete="name"
             />
 
             <Input

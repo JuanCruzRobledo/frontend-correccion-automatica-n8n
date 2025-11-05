@@ -150,6 +150,7 @@ export interface Task {
 export interface User {
   _id: string;
   username: string;
+  name: string;
   role: 'admin' | 'user';
   deleted?: boolean;
   createdAt?: string;
@@ -159,6 +160,7 @@ export interface User {
 export interface UserProfile {
   _id: string;
   username: string;
+  name: string;
   role: 'admin' | 'user';
   hasGeminiApiKey: boolean;
   gemini_api_key?: string | null; // API key desencriptada
@@ -195,6 +197,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   username: string;
+  name: string;
   password: string;
   role?: 'admin' | 'user';
 }

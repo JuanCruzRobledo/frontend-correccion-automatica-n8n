@@ -26,10 +26,11 @@ export const UsersManager = () => {
   // Form states
   const [formData, setFormData] = useState<CreateUserForm | UpdateUserForm>({
     username: '',
+    name: '',
     password: '',
     role: 'user',
   });
-  const [formErrors, setFormErrors] = useState({ username: '', password: '', role: '' });
+  const [formErrors, setFormErrors] = useState({ username: '', name: '', password: '', role: '' });
   const [submitting, setSubmitting] = useState(false);
 
   // Cargar usuarios al montar y cuando cambia showDeleted
@@ -52,8 +53,8 @@ export const UsersManager = () => {
 
   const handleCreate = () => {
     setModalMode('create');
-    setFormData({ username: '', password: '', role: 'user' });
-    setFormErrors({ username: '', password: '', role: '' });
+    setFormData({ username: '', name: '', password: '', role: 'user' });
+    setFormErrors({ username: '', name: '', password: '', role: '' });
     setSelectedUser(null);
     setIsModalOpen(true);
   };
@@ -62,10 +63,11 @@ export const UsersManager = () => {
     setModalMode('edit');
     setFormData({
       username: user.username,
+      name: user.name,
       password: '', // No pre-llenar la contraseña
       role: user.role,
     });
-    setFormErrors({ username: '', password: '', role: '' });
+    setFormErrors({ username: '', name: '', password: '', role: '' });
     setSelectedUser(user);
     setIsModalOpen(true);
   };
@@ -103,7 +105,7 @@ export const UsersManager = () => {
 
   const handleSubmit = async () => {
     // Validar
-    const errors = { username: '', password: '', role: '' };
+    const errors = { username: '', name: '', password: '', role: '' };
 
     if (!formData.username?.trim()) {
       errors.username = 'El nombre de usuario es requerido';
@@ -111,6 +113,10 @@ export const UsersManager = () => {
       errors.username = 'Solo letras minúsculas, números, guiones y guiones bajos';
     } else if (formData.username.length < 3) {
       errors.username = 'Mínimo 3 caracteres';
+    }
+
+    if (!formData.name?.trim()) {
+      errors.name = 'El nombre es requerido';
     }
 
     if (modalMode === 'create' && !formData.password?.trim()) {
@@ -123,7 +129,7 @@ export const UsersManager = () => {
       errors.role = 'El rol es requerido';
     }
 
-    if (errors.username || errors.password || errors.role) {
+    if (errors.username || errors.name || errors.password || errors.role) {
       setFormErrors(errors);
       return;
     }
@@ -139,6 +145,10 @@ export const UsersManager = () => {
 
         if (formData.username && formData.username !== selectedUser.username) {
           updateData.username = formData.username;
+        }
+
+        if (formData.name && formData.name !== selectedUser.name) {
+          updateData.name = formData.name;
         }
 
         if (formData.password) {
@@ -178,6 +188,7 @@ export const UsersManager = () => {
   // Columnas de la tabla
   const columns = [
     { header: 'Usuario', accessor: 'username' as keyof User },
+    { header: 'Nombre', accessor: 'name' as keyof User },
     {
       header: 'Rol',
       accessor: (row: User) => (
@@ -297,6 +308,15 @@ export const UsersManager = () => {
             error={formErrors.username}
             helperText="Solo letras minúsculas, números, guiones y guiones bajos (mín. 3 caracteres)"
             disabled={selectedUser?.username === 'admin'}
+          />
+
+          <Input
+            label="Nombre Completo"
+            placeholder="ej: Juan Pérez"
+            value={formData.name || ''}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            error={formErrors.name}
+            helperText="Nombre completo del usuario"
           />
 
           <Input
