@@ -668,14 +668,36 @@ export const UserView = () => {
               </p>
             </div>
 
-            <Button
-              onClick={handleBatchGrading}
-              loading={isBatchGrading}
-              disabled={!selectedRubricId || !hasApiKey}
-              variant="secondary"
-            >
-              {isBatchGrading ? 'Corrigiendo todos los alumnos…' : 'Iniciar Corrección Automática'}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleBatchGrading}
+                loading={isBatchGrading}
+                disabled={!selectedRubricId || !hasApiKey}
+                variant="secondary"
+                className="flex-1"
+              >
+                {isBatchGrading ? 'Corrigiendo todos los alumnos…' : 'Iniciar Corrección Automática'}
+              </Button>
+
+              {/* Botón para ir a Drive */}
+              {selectedRubricId && (() => {
+                const selectedRubric = rubrics.find((r) => r._id === selectedRubricId);
+                const driveFolderId = selectedRubric?.drive_folder_id;
+
+                if (driveFolderId) {
+                  return (
+                    <Button
+                      onClick={() => window.open(`https://drive.google.com/drive/folders/${driveFolderId}`, '_blank')}
+                      variant="primary"
+                      className="whitespace-nowrap"
+                    >
+                      📂 Ir a Drive
+                    </Button>
+                  );
+                }
+                return null;
+              })()}
+            </div>
 
             {!hasApiKey && (
               <div className="rounded-xl border border-danger-1/40 bg-danger-1/10 p-3 text-sm text-danger-1">

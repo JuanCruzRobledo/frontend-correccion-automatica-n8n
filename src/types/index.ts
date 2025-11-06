@@ -90,6 +90,7 @@ export interface Rubric {
   rubric_json: RubricJSON; // El esquema completo de la rúbrica
   source: 'pdf' | 'json' | 'manual';
   original_file_url?: string;
+  drive_folder_id?: string; // ID de la carpeta en Google Drive
   deleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
