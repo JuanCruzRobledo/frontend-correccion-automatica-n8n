@@ -460,7 +460,7 @@ export const UserView = () => {
         career_id: selectedCareerId,
         course_id: selectedCourseId,
         commission_id: selectedCommissionId,
-        rubric_id: selectedRubricId,
+        rubric_id: rubric.rubric_id, // Enviar el rubric_id del modelo (no el _id de MongoDB)
         rubric_json: rubric.rubric_json,
         gemini_api_key: userProfile.gemini_api_key, // Enviar API key del usuario
       });

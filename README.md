@@ -128,7 +128,7 @@ Frontend desarrollado en **React + TypeScript + Tailwind CSS** con arquitectura 
 - **Node.js** >= 18.0.0
 - **npm** >= 9.0.0
 - **Backend corriendo** en puerto 5000 (ver `../backend/README.md`)
-- **n8n configurado** con webhooks activos (ver `../../n8n-flows/README.md`)
+- **n8n configurado** con webhooks activos (ver `../n8n-workflows/README.md`)
 
 ---
 
@@ -693,7 +693,7 @@ vercel --prod
 
 Para problemas relacionados con:
 - **Backend API**: Ver `../backend/README.md`
-- **Flujos de n8n**: Ver `../../n8n-flows/README.md`
+- **Flujos de n8n**: Ver `../n8n-workflows/README.md`
 - **Plan general del proyecto**: Ver `../../PROYECTO_PLAN.md`
 - **Guía de pruebas**: Ver `../../GUIA_PRUEBAS.md`
 
