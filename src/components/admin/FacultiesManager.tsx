@@ -8,19 +8,24 @@ import { Input } from '../shared/Input';
 import { Modal } from '../shared/Modal';
 import { Table } from '../shared/Table';
 import { Card } from '../shared/Card';
+import { useAuth } from '../../hooks/useAuth';
 import facultyService from '../../services/facultyService';
 import universityService from '../../services/universityService';
 import { suggestUniversityId, cleanId } from '../../utils/slugify';
 import type { Faculty, University } from '../../types';
 
 export const FacultiesManager = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super-admin';
+  const userUniversityId = user?.university_id;
+
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtro
-  const [filterUniversityId, setFilterUniversityId] = useState('');
+  // Filtro (solo para super-admin, university-admin auto-filtra por su universidad)
+  const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -213,24 +218,26 @@ export const FacultiesManager = () => {
           <Button onClick={handleCreate}>+ Crear Facultad</Button>
         </div>
 
-        {/* Filtro por Universidad */}
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">
-            Filtrar por Universidad
-          </label>
-          <select
-            className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
-            value={filterUniversityId}
-            onChange={(e) => setFilterUniversityId(e.target.value)}
-          >
-            <option value="">Todas las universidades</option>
-            {universities.map((uni) => (
-              <option key={uni._id} value={uni.university_id}>
-                {uni.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Filtro por Universidad (solo para super-admin) */}
+        {isSuperAdmin && (
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Filtrar por Universidad
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+              value={filterUniversityId}
+              onChange={(e) => setFilterUniversityId(e.target.value)}
+            >
+              <option value="">Todas las universidades</option>
+              {universities.map((uni) => (
+                <option key={uni._id} value={uni.university_id}>
+                  {uni.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -259,30 +266,46 @@ export const FacultiesManager = () => {
         confirmLoading={submitting}
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Universidad *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
-              value={formData.university_id}
-              onChange={(e) => setFormData({ ...formData, university_id: e.target.value })}
-              disabled={modalMode === 'edit'}
-            >
-              <option value="">Seleccionar universidad...</option>
-              {universities.map((uni) => (
-                <option key={uni._id} value={uni.university_id}>
-                  {uni.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.university_id && (
-              <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
-            )}
-            {modalMode === 'edit' && (
-              <p className="mt-1 text-xs text-text-disabled">La universidad no se puede modificar</p>
-            )}
-          </div>
+          {/* Campo Universidad: solo visible para super-admin */}
+          {isSuperAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Universidad *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+                value={formData.university_id}
+                onChange={(e) => setFormData({ ...formData, university_id: e.target.value })}
+                disabled={modalMode === 'edit'}
+              >
+                <option value="">Seleccionar universidad...</option>
+                {universities.map((uni) => (
+                  <option key={uni._id} value={uni.university_id}>
+                    {uni.name}
+                  </option>
+                ))}
+              </select>
+              {formErrors.university_id && (
+                <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
+              )}
+              {modalMode === 'edit' && (
+                <p className="mt-1 text-xs text-text-disabled">La universidad no se puede modificar</p>
+              )}
+            </div>
+          )}
+
+          {/* Mostrar universidad actual si no es super-admin */}
+          {!isSuperAdmin && userUniversityId && (
+            <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+              <p className="text-sm text-text-disabled mb-1">Universidad</p>
+              <p className="text-text-primary font-medium">
+                {universities.find(u => u.university_id === userUniversityId)?.name || userUniversityId}
+              </p>
+              <p className="text-xs text-text-disabled mt-1">
+                (gestionas solo esta universidad)
+              </p>
+            </div>
+          )}
 
           <Input
             label="Nombre"

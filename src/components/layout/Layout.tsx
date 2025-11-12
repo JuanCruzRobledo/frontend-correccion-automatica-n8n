@@ -13,7 +13,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin, hasRole } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -54,7 +54,9 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                 <div className="min-w-0 flex-1">
                   <h1 className="text-sm sm:text-lg font-semibold truncate text-text-primary">Sistema de Corrección Automática</h1>
                   <p className="text-xs text-text-tertiary hidden sm:block">
-                    {user?.role === 'admin' ? 'Panel de Administración' : 'Vista de Usuario'}
+                    {isAdmin() && 'Panel de Administración'}
+                    {hasRole('professor') && 'Panel del Profesor'}
+                    {hasRole('user') && 'Vista de Usuario'}
                   </p>
                 </div>
               </div>
@@ -74,8 +76,8 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                     <span className="hidden sm:inline">📦 Consolidador</span>
                   </Button>
 
-                  {/* Botones de admin */}
-                  {user?.role === 'admin' && (
+                  {/* Botones de navegación según rol */}
+                  {isAdmin() && (
                     <>
                       <Button
                         variant="primary"
@@ -83,7 +85,7 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                         onClick={() => navigate('/admin')}
                         className="flex-1 sm:flex-none"
                       >
-                        <span className="sm:hidden">👨‍💼 Admin</span>
+                        <span className="sm:hidden">👨‍💼</span>
                         <span className="hidden sm:inline">👨‍💼 Admin Panel</span>
                       </Button>
                       <Button
@@ -92,20 +94,44 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                         onClick={() => navigate('/')}
                         className="flex-1 sm:flex-none"
                       >
-                        🏠 Inicio
+                        <span className="sm:hidden">🏠</span>
+                        <span className="hidden sm:inline">🏠 Inicio</span>
                       </Button>
                     </>
                   )}
 
-                  {/* Botón Inicio para usuarios normales */}
-                  {user?.role !== 'admin' && (
+                  {hasRole('professor') && (
+                    <>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => navigate('/professor')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <span className="sm:hidden">👨‍🏫</span>
+                        <span className="hidden sm:inline">👨‍🏫 Mis Comisiones</span>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => navigate('/')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <span className="sm:hidden">🏠</span>
+                        <span className="hidden sm:inline">🏠 Corrección</span>
+                      </Button>
+                    </>
+                  )}
+
+                  {hasRole('user') && (
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => navigate('/')}
                       className="flex-1 sm:flex-none"
                     >
-                      🏠 Inicio
+                      <span className="sm:hidden">🏠</span>
+                      <span className="hidden sm:inline">🏠 Inicio</span>
                     </Button>
                   )}
                 </div>

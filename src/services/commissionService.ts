@@ -96,6 +96,38 @@ export const deleteCommission = async (id: string): Promise<void> => {
   await api.delete(`/api/commissions/${id}`);
 };
 
+/**
+ * Asignar profesor a una comisión
+ */
+export const assignProfessor = async (commissionId: string, professorId: string): Promise<Commission> => {
+  const response = await api.post<ApiResponse<Commission>>(`/api/commissions/${commissionId}/assign-professor`, {
+    professor_id: professorId,
+  });
+  if (!response.data.data) {
+    throw new Error('Error al asignar profesor');
+  }
+  return response.data.data;
+};
+
+/**
+ * Remover profesor de una comisión
+ */
+export const removeProfessor = async (commissionId: string, professorId: string): Promise<Commission> => {
+  const response = await api.delete<ApiResponse<Commission>>(`/api/commissions/${commissionId}/professors/${professorId}`);
+  if (!response.data.data) {
+    throw new Error('Error al remover profesor');
+  }
+  return response.data.data;
+};
+
+/**
+ * Obtener profesores disponibles por universidad
+ */
+export const getProfessorsByUniversity = async (universityId: string): Promise<any[]> => {
+  const response = await api.get<ApiResponse<any[]>>(`/api/users?role=professor&university_id=${universityId}`);
+  return response.data.data || [];
+};
+
 const commissionService = {
   getCommissions,
   getAllCommissions,
@@ -105,6 +137,9 @@ const commissionService = {
   updateCommission,
   restoreCommission,
   deleteCommission,
+  assignProfessor,
+  removeProfessor,
+  getProfessorsByUniversity,
 };
 
 export default commissionService;

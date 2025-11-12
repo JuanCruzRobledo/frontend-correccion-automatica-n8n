@@ -3,6 +3,7 @@
  * Mantiene el estilo Tailwind oscuro del diseño original
  */
 import { SelectHTMLAttributes, forwardRef } from 'react';
+import { TooltipIcon } from './TooltipIcon';
 
 interface SelectOption {
   value: string;
@@ -15,6 +16,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   helperText?: string;
   options: SelectOption[];
   placeholder?: string;
+  tooltip?: string;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
@@ -25,6 +27,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       helperText,
       options,
       placeholder = 'Selecciona una opción',
+      tooltip,
       className = '',
       ...props
     },
@@ -48,8 +51,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-text-tertiary mb-2">
-            {label}
+          <label className="flex items-center gap-2 text-sm font-medium text-text-tertiary mb-2">
+            <span>{label}</span>
+            {tooltip && <TooltipIcon content={tooltip} />}
           </label>
         )}
 

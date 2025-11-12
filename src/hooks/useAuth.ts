@@ -76,7 +76,23 @@ export const useAuth = () => {
    * Verificar si el usuario es admin
    */
   const isAdmin = useCallback((): boolean => {
-    return authState.user?.role === 'admin';
+    return authState.user?.role === 'admin' ||
+           authState.user?.role === 'super-admin' ||
+           authState.user?.role === 'university-admin';
+  }, [authState.user]);
+
+  /**
+   * Verificar si el usuario tiene un rol específico
+   */
+  const hasRole = useCallback((role: string): boolean => {
+    return authState.user?.role === role;
+  }, [authState.user]);
+
+  /**
+   * Obtener el rol del usuario
+   */
+  const getRole = useCallback((): string | undefined => {
+    return authState.user?.role;
   }, [authState.user]);
 
   return {
@@ -84,6 +100,8 @@ export const useAuth = () => {
     login,
     logout,
     isAdmin,
+    hasRole,
+    getRole,
   };
 };
 

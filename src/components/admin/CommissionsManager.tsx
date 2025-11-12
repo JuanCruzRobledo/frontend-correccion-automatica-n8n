@@ -8,6 +8,7 @@ import { Input } from '../shared/Input';
 import { Modal } from '../shared/Modal';
 import { Table } from '../shared/Table';
 import { Card } from '../shared/Card';
+import { useAuth } from '../../hooks/useAuth';
 import commissionService from '../../services/commissionService';
 import courseService from '../../services/courseService';
 import careerService from '../../services/careerService';
@@ -17,17 +18,22 @@ import { suggestUniversityId, cleanId } from '../../utils/slugify';
 import type { Commission, Course, Career, Faculty, University } from '../../types';
 
 export const CommissionsManager = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super-admin';
+  const userUniversityId = user?.university_id;
+
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [careers, setCareers] = useState<Career[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [professors, setProfessors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtros
+  // Filtros (auto-filtrar por universidad si no es super-admin)
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
-  const [filterUniversityId, setFilterUniversityId] = useState('');
+  const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
   const [filterFacultyId, setFilterFacultyId] = useState('');
   const [filterCareerId, setFilterCareerId] = useState('');
   const [filterCourseId, setFilterCourseId] = useState('');
@@ -45,8 +51,6 @@ export const CommissionsManager = () => {
     career_id: '',
     faculty_id: '',
     university_id: '',
-    professor_name: '',
-    professor_email: '',
     year: new Date().getFullYear(),
   });
   const [formErrors, setFormErrors] = useState({
@@ -56,13 +60,20 @@ export const CommissionsManager = () => {
     career_id: '',
     faculty_id: '',
     university_id: '',
-    professor_email: '',
     year: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [suggestedId, setSuggestedId] = useState('');
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
+  const [selectedProfessorsForCreate, setSelectedProfessorsForCreate] = useState<string[]>([]);
+
+  // Actualizar filtro de universidad cuando userUniversityId está disponible
+  useEffect(() => {
+    if (userUniversityId && !filterUniversityId) {
+      setFilterUniversityId(userUniversityId);
+    }
+  }, [userUniversityId]);
 
   // Cargar datos al montar
   useEffect(() => {
@@ -105,15 +116,29 @@ export const CommissionsManager = () => {
     return () => clearTimeout(timeoutId);
   }, [formData.commission_id, formData.course_id, modalMode, commissions]);
 
-  // Actualizar jerarquía en cascada
+  // Actualizar jerarquía en cascada y cargar profesores cuando cambia universidad
   useEffect(() => {
     if (formData.university_id) {
       const filteredFaculties = faculties.filter(f => f.university_id === formData.university_id);
       if (formData.faculty_id && !filteredFaculties.find(f => f.faculty_id === formData.faculty_id)) {
         setFormData(prev => ({ ...prev, faculty_id: '', career_id: '', course_id: '' }));
       }
+
+      // Cargar profesores cuando cambia universidad en modo creación
+      if (modalMode === 'create' && isModalOpen) {
+        const loadProfessors = async () => {
+          try {
+            const profsList = await commissionService.getProfessorsByUniversity(formData.university_id);
+            setProfessors(profsList);
+          } catch (err) {
+            console.error('Error al cargar profesores:', err);
+            setProfessors([]);
+          }
+        };
+        loadProfessors();
+      }
     }
-  }, [formData.university_id, faculties, formData.faculty_id]);
+  }, [formData.university_id, faculties, formData.faculty_id, modalMode, isModalOpen]);
 
   useEffect(() => {
     if (formData.faculty_id) {
@@ -156,18 +181,18 @@ export const CommissionsManager = () => {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setModalMode('create');
-    // Pre-llenar con valores de filtros
+    const prefilledUniversityId = userUniversityId || filterUniversityId || '';
+
+    // Pre-llenar con valores de filtros (priorizar userUniversityId para university-admin)
     setFormData({
       commission_id: '',
       name: '',
       course_id: filterCourseId || '',
       career_id: filterCareerId || '',
       faculty_id: filterFacultyId || '',
-      university_id: filterUniversityId || '',
-      professor_name: '',
-      professor_email: '',
+      university_id: prefilledUniversityId,
       year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
     });
     setFormErrors({
@@ -177,13 +202,27 @@ export const CommissionsManager = () => {
       career_id: '',
       faculty_id: '',
       university_id: '',
-      professor_email: '',
       year: '',
     });
     setSelectedCommission(null);
     setSuggestedId('');
     setIsDuplicate(false);
     setCheckingDuplicate(false);
+    setSelectedProfessorsForCreate([]);
+
+    // Cargar profesores disponibles si ya hay universidad seleccionada
+    if (prefilledUniversityId) {
+      try {
+        const profsList = await commissionService.getProfessorsByUniversity(prefilledUniversityId);
+        setProfessors(profsList);
+      } catch (err) {
+        console.error('Error al cargar profesores:', err);
+        setProfessors([]);
+      }
+    } else {
+      setProfessors([]);
+    }
+
     setIsModalOpen(true);
   };
 
@@ -191,7 +230,7 @@ export const CommissionsManager = () => {
     setFormData({ ...formData, commission_id: suggestedId });
   };
 
-  const handleEdit = (commission: Commission) => {
+  const handleEdit = async (commission: Commission) => {
     setModalMode('edit');
     setFormData({
       commission_id: commission.commission_id,
@@ -200,8 +239,6 @@ export const CommissionsManager = () => {
       career_id: commission.career_id,
       faculty_id: commission.faculty_id,
       university_id: commission.university_id,
-      professor_name: commission.professor_name || '',
-      professor_email: commission.professor_email || '',
       year: commission.year,
     });
     setFormErrors({
@@ -211,10 +248,21 @@ export const CommissionsManager = () => {
       career_id: '',
       faculty_id: '',
       university_id: '',
-      professor_email: '',
       year: '',
     });
     setSelectedCommission(commission);
+
+    // Cargar profesores disponibles de la universidad (solo role=professor)
+    if (commission.university_id) {
+      try {
+        const profsList = await commissionService.getProfessorsByUniversity(commission.university_id);
+        setProfessors(profsList);
+      } catch (err) {
+        console.error('Error al cargar profesores:', err);
+        setProfessors([]);
+      }
+    }
+
     setIsModalOpen(true);
   };
 
@@ -231,6 +279,42 @@ export const CommissionsManager = () => {
     }
   };
 
+  const handleAssignProfessor = async (professorId: string) => {
+    if (!selectedCommission) return;
+
+    try {
+      const updated = await commissionService.assignProfessor(selectedCommission._id, professorId);
+      setSelectedCommission(updated);
+      await loadData();
+    } catch (err: unknown) {
+      alert(err && typeof err === 'object' && 'message' in err ? String(err.message) : 'Error al asignar profesor');
+    }
+  };
+
+  const handleRemoveProfessor = async (professorId: string) => {
+    if (!selectedCommission) return;
+
+    if (!confirm('¿Quitar este profesor de la comisión?')) return;
+
+    try {
+      const updated = await commissionService.removeProfessor(selectedCommission._id, professorId);
+      setSelectedCommission(updated);
+      await loadData();
+    } catch (err: unknown) {
+      alert(err && typeof err === 'object' && 'message' in err ? String(err.message) : 'Error al remover profesor');
+    }
+  };
+
+  const handleAddProfessorForCreate = (professorId: string) => {
+    if (!selectedProfessorsForCreate.includes(professorId)) {
+      setSelectedProfessorsForCreate([...selectedProfessorsForCreate, professorId]);
+    }
+  };
+
+  const handleRemoveProfessorForCreate = (professorId: string) => {
+    setSelectedProfessorsForCreate(selectedProfessorsForCreate.filter(id => id !== professorId));
+  };
+
   const handleSubmit = async () => {
     // Validar
     const errors = {
@@ -240,7 +324,6 @@ export const CommissionsManager = () => {
       career_id: '',
       faculty_id: '',
       university_id: '',
-      professor_email: '',
       year: '',
     };
 
@@ -251,9 +334,6 @@ export const CommissionsManager = () => {
     if (!formData.faculty_id) errors.faculty_id = 'La facultad es requerida';
     if (!formData.university_id) errors.university_id = 'La universidad es requerida';
     if (!formData.year) errors.year = 'El año es requerido';
-    if (formData.professor_email && !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.professor_email)) {
-      errors.professor_email = 'Email inválido';
-    }
     if (isDuplicate) errors.commission_id = 'Este ID ya existe en esta materia';
 
     if (Object.values(errors).some(e => e)) {
@@ -265,7 +345,18 @@ export const CommissionsManager = () => {
       setSubmitting(true);
 
       if (modalMode === 'create') {
-        await commissionService.createCommission(formData);
+        const newCommission = await commissionService.createCommission(formData);
+
+        // Asignar profesores seleccionados si hay alguno
+        if (selectedProfessorsForCreate.length > 0) {
+          for (const professorId of selectedProfessorsForCreate) {
+            try {
+              await commissionService.assignProfessor(newCommission._id, professorId);
+            } catch (err) {
+              console.error('Error al asignar profesor:', err);
+            }
+          }
+        }
       } else if (selectedCommission) {
         await commissionService.updateCommission(selectedCommission._id, {
           name: formData.name,
@@ -273,8 +364,6 @@ export const CommissionsManager = () => {
           career_id: formData.career_id,
           faculty_id: formData.faculty_id,
           university_id: formData.university_id,
-          professor_name: formData.professor_name || undefined,
-          professor_email: formData.professor_email || undefined,
           year: formData.year,
         });
       }
@@ -350,8 +439,24 @@ export const CommissionsManager = () => {
       accessor: (row: Commission) => row.year,
     },
     {
-      header: 'Profesor',
-      accessor: (row: Commission) => row.professor_name || '-',
+      header: 'Profesores',
+      accessor: (row: Commission) => {
+        if (row.professors && row.professors.length > 0) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {row.professors.map((prof) => (
+                <span
+                  key={prof._id}
+                  className="inline-block px-2 py-0.5 rounded-full text-xs bg-accent-2/20 text-accent-2 border border-accent-2/30"
+                >
+                  {prof.name}
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return row.professor_name || '-';
+      },
     },
     {
       header: 'Acciones',
@@ -379,7 +484,7 @@ export const CommissionsManager = () => {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className={`grid grid-cols-1 ${isSuperAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3`}>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
               Año *
@@ -403,29 +508,32 @@ export const CommissionsManager = () => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Universidad *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={filterUniversityId}
-              onChange={(e) => {
-                setFilterUniversityId(e.target.value);
-                setFilterFacultyId('');
-                setFilterCareerId('');
-                setFilterCourseId('');
-              }}
-              disabled={!filterYear}
-            >
-              <option value="">Seleccionar universidad...</option>
-              {universities.map((uni) => (
-                <option key={uni._id} value={uni.university_id}>
-                  {uni.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Filtro Universidad: solo para super-admin */}
+          {isSuperAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Universidad *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={filterUniversityId}
+                onChange={(e) => {
+                  setFilterUniversityId(e.target.value);
+                  setFilterFacultyId('');
+                  setFilterCareerId('');
+                  setFilterCourseId('');
+                }}
+                disabled={!filterYear}
+              >
+                <option value="">Seleccionar universidad...</option>
+                {universities.map((uni) => (
+                  <option key={uni._id} value={uni.university_id}>
+                    {uni.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
@@ -529,27 +637,43 @@ export const CommissionsManager = () => {
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
           {/* Jerarquía */}
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Universidad *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
-              value={formData.university_id}
-              onChange={(e) => setFormData({ ...formData, university_id: e.target.value })}
-              disabled={modalMode === 'edit'}
-            >
-              <option value="">Seleccionar universidad...</option>
-              {universities.map((uni) => (
-                <option key={uni._id} value={uni.university_id}>
-                  {uni.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.university_id && (
-              <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
-            )}
-          </div>
+          {/* Campo Universidad: solo visible para super-admin */}
+          {isSuperAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Universidad *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+                value={formData.university_id}
+                onChange={(e) => setFormData({ ...formData, university_id: e.target.value })}
+                disabled={modalMode === 'edit'}
+              >
+                <option value="">Seleccionar universidad...</option>
+                {universities.map((uni) => (
+                  <option key={uni._id} value={uni.university_id}>
+                    {uni.name}
+                  </option>
+                ))}
+              </select>
+              {formErrors.university_id && (
+                <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
+              )}
+              {modalMode === 'edit' && (
+                <p className="mt-1 text-xs text-text-disabled">La universidad no se puede modificar</p>
+              )}
+            </div>
+          )}
+
+          {/* Mostrar universidad actual si no es super-admin */}
+          {!isSuperAdmin && userUniversityId && (
+            <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+              <p className="text-sm text-text-disabled mb-1">Universidad</p>
+              <p className="text-text-primary font-medium">
+                {universities.find(u => u.university_id === userUniversityId)?.name || userUniversityId}
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
@@ -643,6 +767,7 @@ export const CommissionsManager = () => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               error={formErrors.name}
+              tooltip="Nombre descriptivo de la comisión. Ej: Comisión 1K1, Turno Mañana, Grupo A"
             />
           </div>
 
@@ -657,6 +782,7 @@ export const CommissionsManager = () => {
               error={formErrors.commission_id}
               disabled={modalMode === 'edit'}
               helperText={modalMode === 'edit' ? 'El ID no se puede modificar' : 'Solo minúsculas, números y guiones'}
+              tooltip="Identificador único de la comisión en formato kebab-case. Ej: 1k1, turno-manana"
             />
 
             {/* Sugerencia de ID */}
@@ -697,21 +823,137 @@ export const CommissionsManager = () => {
             )}
           </div>
 
-          <Input
-            label="Nombre del Profesor"
-            placeholder="ej: Prof. Juan Pérez"
-            value={formData.professor_name}
-            onChange={(e) => setFormData({ ...formData, professor_name: e.target.value })}
-          />
+          {/* Sección de Asignación de Profesores (modo creación) */}
+          {modalMode === 'create' && professors.length > 0 && (
+            <div className="border-t border-border-primary pt-4">
+              <h4 className="text-sm font-medium text-text-primary mb-3">
+                👨‍🏫 Asignar Profesores (Opcional)
+              </h4>
 
-          <Input
-            label="Email del Profesor"
-            type="email"
-            placeholder="ej: juan.perez@example.com"
-            value={formData.professor_email}
-            onChange={(e) => setFormData({ ...formData, professor_email: e.target.value })}
-            error={formErrors.professor_email}
-          />
+              {/* Lista de profesores seleccionados */}
+              {selectedProfessorsForCreate.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  {selectedProfessorsForCreate.map((profId) => {
+                    const prof = professors.find(p => p._id === profId);
+                    if (!prof) return null;
+                    return (
+                      <div
+                        key={profId}
+                        className="flex items-center justify-between p-2 bg-bg-tertiary rounded-lg border border-border-secondary"
+                      >
+                        <div>
+                          <p className="text-sm text-text-primary font-medium">{prof.name}</p>
+                          <p className="text-xs text-text-disabled">{prof.username}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleRemoveProfessorForCreate(profId)}
+                        >
+                          Quitar
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Select para agregar profesor */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Agregar Profesor
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleAddProfessorForCreate(e.target.value);
+                      e.target.value = ''; // Reset select
+                    }
+                  }}
+                >
+                  <option value="">Seleccionar profesor...</option>
+                  {professors
+                    .filter((prof) => !selectedProfessorsForCreate.includes(prof._id))
+                    .map((prof) => (
+                      <option key={prof._id} value={prof._id}>
+                        {prof.name} ({prof.username})
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Sección de Asignación de Profesores (solo en modo edición) */}
+          {modalMode === 'edit' && selectedCommission && (
+            <div className="border-t border-border-primary pt-4">
+              <h4 className="text-sm font-medium text-text-primary mb-3">
+                👨‍🏫 Profesores Asignados
+              </h4>
+
+              {/* Lista de profesores asignados */}
+              {selectedCommission.professors && selectedCommission.professors.length > 0 ? (
+                <div className="mb-3 space-y-2">
+                  {selectedCommission.professors.map((prof) => (
+                    <div
+                      key={prof._id}
+                      className="flex items-center justify-between p-2 bg-bg-tertiary rounded-lg border border-border-secondary"
+                    >
+                      <div>
+                        <p className="text-sm text-text-primary font-medium">{prof.name}</p>
+                        <p className="text-xs text-text-disabled">{prof.username}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleRemoveProfessor(prof._id)}
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mb-3 p-3 bg-bg-tertiary/50 rounded-lg border border-border-secondary/50">
+                  <p className="text-sm text-text-disabled">No hay profesores asignados</p>
+                </div>
+              )}
+
+              {/* Select para asignar nuevo profesor */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Asignar Profesor
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleAssignProfessor(e.target.value);
+                      e.target.value = ''; // Reset select
+                    }
+                  }}
+                >
+                  <option value="">Seleccionar profesor...</option>
+                  {professors
+                    .filter(
+                      (prof) =>
+                        !selectedCommission.professors?.some((assigned) => assigned._id === prof._id)
+                    )
+                    .map((prof) => (
+                      <option key={prof._id} value={prof._id}>
+                        {prof.name} ({prof.username})
+                      </option>
+                    ))}
+                </select>
+                {professors.length === 0 && (
+                  <p className="mt-1 text-xs text-text-disabled">
+                    No hay profesores disponibles en esta universidad
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
     </Card>

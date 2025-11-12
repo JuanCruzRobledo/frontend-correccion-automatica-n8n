@@ -3,15 +3,17 @@
  * Mantiene el estilo Tailwind oscuro del diseño original
  */
 import { InputHTMLAttributes, forwardRef } from 'react';
+import { TooltipIcon } from './TooltipIcon';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
+  tooltip?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, className = '', ...props }, ref) => {
+  ({ label, error, helperText, tooltip, className = '', ...props }, ref) => {
     const inputStyles = `
       w-full px-4 py-2.5
       bg-bg-tertiary
@@ -30,8 +32,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-text-tertiary mb-2">
-            {label}
+          <label className="flex items-center gap-2 text-sm font-medium text-text-tertiary mb-2">
+            <span>{label}</span>
+            {tooltip && <TooltipIcon content={tooltip} />}
           </label>
         )}
 

@@ -9,10 +9,11 @@ import { useAuth } from '../../hooks/useAuth';
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
+  requireRole?: string;
 }
 
-export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, isAdmin } = useAuth();
+export const ProtectedRoute = ({ children, requireAdmin = false, requireRole }: ProtectedRouteProps) => {
+  const { isAuthenticated, loading, isAdmin, hasRole } = useAuth();
 
   // Mientras carga, mostrar spinner
   if (loading) {
@@ -52,6 +53,11 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
 
   // Si requiere admin y no lo es, redirigir a home
   if (requireAdmin && !isAdmin()) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Si requiere un rol específico y no lo tiene, redirigir a home
+  if (requireRole && !hasRole(requireRole)) {
     return <Navigate to="/" replace />;
   }
 

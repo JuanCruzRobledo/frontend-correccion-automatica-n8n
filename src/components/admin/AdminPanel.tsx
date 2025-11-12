@@ -2,7 +2,8 @@
  * AdminPanel - Panel de administración con tabs
  * Integra toda la gestión académica jerárquica
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { UniversitiesManager } from './UniversitiesManager';
 import { FacultiesManager } from './FacultiesManager';
 import { CareersManager } from './CareersManager';
@@ -17,10 +18,11 @@ interface Tab {
   id: TabId;
   label: string;
   icon: string;
+  requiredRole?: 'super-admin'; // Solo visible para super-admin
 }
 
-const tabs: Tab[] = [
-  { id: 'universities', label: 'Universidades', icon: '🏫' },
+const allTabs: Tab[] = [
+  { id: 'universities', label: 'Universidades', icon: '🏫', requiredRole: 'super-admin' },
   { id: 'faculties', label: 'Facultades', icon: '🏛️' },
   { id: 'careers', label: 'Carreras', icon: '🎓' },
   { id: 'courses', label: 'Materias', icon: '📚' },
@@ -30,7 +32,21 @@ const tabs: Tab[] = [
 ];
 
 export const AdminPanel = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('universities');
+  const { user } = useAuth();
+
+  // Filtrar tabs según rol del usuario
+  const tabs = useMemo(() => {
+    return allTabs.filter(tab => {
+      // Si el tab requiere super-admin, verificar que el usuario lo sea
+      if (tab.requiredRole === 'super-admin') {
+        return user?.role === 'super-admin';
+      }
+      return true;
+    });
+  }, [user]);
+
+  // Tab inicial: primer tab disponible para el usuario
+  const [activeTab, setActiveTab] = useState<TabId>(tabs[0]?.id || 'faculties');
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 min-h-[calc(100vh-5rem)]">

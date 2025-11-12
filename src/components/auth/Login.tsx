@@ -11,7 +11,7 @@ import { Card } from '../shared/Card';
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, loading, getRole } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -23,8 +23,24 @@ export const Login = () => {
 
     try {
       await login({ username, password });
-      // Redirigir a home después del login exitoso
-      navigate('/');
+
+      // Redirigir según rol después del login exitoso
+      const role = getRole();
+
+      switch (role) {
+        case 'super-admin':
+        case 'university-admin':
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'professor':
+          navigate('/professor');
+          break;
+        case 'user':
+        default:
+          navigate('/');
+          break;
+      }
     } catch (err: unknown) {
       setError(
         err && typeof err === 'object' && 'message' in err

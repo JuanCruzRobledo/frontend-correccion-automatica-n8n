@@ -108,6 +108,13 @@ export const deleteRubric = async (id: string): Promise<void> => {
   await api.delete(`/api/rubrics/${id}`);
 };
 
+/**
+ * Obtener rúbricas por comisión
+ */
+export const getRubricsByCommission = async (commissionId: string): Promise<Rubric[]> => {
+  return getRubrics({ commission_id: commissionId });
+};
+
 const rubricService = {
   getRubrics,
   getRubricById,
@@ -115,6 +122,7 @@ const rubricService = {
   createRubricFromPDF,
   updateRubric,
   deleteRubric,
+  getRubricsByCommission,
 };
 
 export default rubricService;

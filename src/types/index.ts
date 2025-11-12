@@ -57,6 +57,7 @@ export interface Commission {
   university_id: string;
   professor_name?: string;
   professor_email?: string;
+  professors?: User[]; // Array de profesores asignados
   year: number;
   deleted?: boolean;
   createdAt?: string;
@@ -152,7 +153,8 @@ export interface User {
   _id: string;
   username: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'super-admin' | 'university-admin' | 'professor' | 'user' | 'admin';
+  university_id?: string;
   deleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -162,7 +164,8 @@ export interface UserProfile {
   _id: string;
   username: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'super-admin' | 'university-admin' | 'professor' | 'user' | 'admin';
+  university_id?: string;
   hasGeminiApiKey: boolean;
   gemini_api_key?: string | null; // API key desencriptada
   gemini_api_key_last_4?: string;
