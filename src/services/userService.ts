@@ -12,8 +12,10 @@ export interface CreateUserForm {
   username: string;
   name: string;
   password: string;
-  role: 'super-admin' | 'university-admin' | 'professor' | 'user' | 'admin';
+  role: 'super-admin' | 'university-admin' | 'faculty-admin' | 'professor-admin' | 'professor' | 'user' | 'admin';
   university_id?: string;
+  faculty_id?: string; // Para faculty-admin
+  course_ids?: string[]; // Para professor-admin
 }
 
 /**
@@ -23,8 +25,10 @@ export interface UpdateUserForm {
   username?: string;
   name?: string;
   password?: string;
-  role?: 'super-admin' | 'university-admin' | 'professor' | 'user' | 'admin';
+  role?: 'super-admin' | 'university-admin' | 'faculty-admin' | 'professor-admin' | 'professor' | 'user' | 'admin';
   university_id?: string;
+  faculty_id?: string; // Para faculty-admin
+  course_ids?: string[]; // Para professor-admin
 }
 
 /**

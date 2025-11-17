@@ -32,8 +32,8 @@ export const getAdminPanelTitle = async (user: User | null): Promise<TitleInfo> 
         }
 
         // Buscar nombre de la universidad
-        const universitiesResponse = await universityService.getAll();
-        const university = universitiesResponse.data?.find(
+        const universities = await universityService.getUniversities();
+        const university = universities.find(
           (u: University) => u.university_id === user.university_id
         );
 
@@ -48,15 +48,15 @@ export const getAdminPanelTitle = async (user: User | null): Promise<TitleInfo> 
         }
 
         // Buscar nombre de la facultad y universidad
-        const [universitiesResponse, facultiesResponse] = await Promise.all([
-          universityService.getAll(),
-          facultyService.getAll(),
+        const [universities, faculties] = await Promise.all([
+          universityService.getUniversities(),
+          facultyService.getAllFaculties(),
         ]);
 
-        const university = universitiesResponse.data?.find(
+        const university = universities.find(
           (u: University) => u.university_id === user.university_id
         );
-        const faculty = facultiesResponse.data?.find(
+        const faculty = faculties.find(
           (f: Faculty) => f.faculty_id === user.faculty_id
         );
 
@@ -73,8 +73,8 @@ export const getAdminPanelTitle = async (user: User | null): Promise<TitleInfo> 
 
         // Si tiene solo 1 curso, mostrar el nombre del curso
         if (user.course_ids.length === 1) {
-          const coursesResponse = await courseService.getAll();
-          const course = coursesResponse.data?.find(
+          const courses = await courseService.getCourses();
+          const course = courses.find(
             (c: Course) => c.course_id === user.course_ids![0]
           );
 
