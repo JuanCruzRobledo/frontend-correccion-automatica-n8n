@@ -4,7 +4,7 @@
  */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/auth/Login';
-import { Register } from './components/auth/Register';
+// import { Register } from './components/auth/Register'; // DESACTIVADO - Solo admins pueden crear usuarios
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { UserView } from './components/user/UserView';
@@ -82,7 +82,8 @@ function App() {
       <Routes>
         {/* Rutas públicas */}
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* REGISTRO PÚBLICO DESACTIVADO - Solo admins pueden crear usuarios desde /admin */}
+        {/* <Route path="/register" element={<Register />} /> */}
         <Route path="/consolidator" element={<ConsolidatorPage />} />
 
         {/* Ruta protegida - Home (usuario normal o admin) */}

@@ -20,7 +20,9 @@ import type { Course, University, Faculty, Career } from '../../types';
 export const CoursesManager = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super-admin';
+  const isFacultyAdmin = user?.role === 'faculty-admin';
   const userUniversityId = user?.university_id;
+  const userFacultyId = user?.faculty_id;
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
@@ -29,9 +31,9 @@ export const CoursesManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtros (auto-filtrar por universidad si no es super-admin)
+  // Filtros (auto-filtrar por universidad y facultad según rol)
   const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
-  const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterFacultyId, setFilterFacultyId] = useState(userFacultyId || '');
   const [filterCareerId, setFilterCareerId] = useState('');
 
   // Modal states

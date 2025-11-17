@@ -1,11 +1,12 @@
 /**
  * UserProfile - Perfil de usuario con gestión de API Key de Gemini
- * Permite al usuario configurar su API key personal
+ * Permite al usuario configurar su API key personal y cambiar contraseña
  */
 import { useState, useEffect } from 'react';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Card } from '../shared/Card';
+import { ChangePasswordModal } from '../auth/ChangePasswordModal';
 import profileService from '../../services/profileService';
 import type { UserProfile as UserProfileType } from '../../types';
 
@@ -20,6 +21,9 @@ export const UserProfile = () => {
   const [apiKeyError, setApiKeyError] = useState('');
   const [configuringApiKey, setConfiguringApiKey] = useState(false);
   const [deletingApiKey, setDeletingApiKey] = useState(false);
+
+  // Estado para modal de cambio de contraseña
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -186,6 +190,26 @@ export const UserProfile = () => {
         </div>
       </Card>
 
+      {/* Seguridad */}
+      <Card title="Seguridad">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-text-tertiary mb-2">
+              Contraseña
+            </label>
+            <p className="text-sm text-text-secondary mb-4">
+              Cambia tu contraseña para mantener tu cuenta segura
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => setShowChangePasswordModal(true)}
+            >
+              🔒 Cambiar Contraseña
+            </Button>
+          </div>
+        </div>
+      </Card>
+
       {/* API Key de Gemini */}
       <Card title="API Key de Gemini">
         <div className="space-y-4">
@@ -300,6 +324,18 @@ export const UserProfile = () => {
           )}
         </div>
       </Card>
+
+      {/* Modal de Cambio de Contraseña */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        isFirstLogin={false}
+        onSuccess={() => {
+          setShowChangePasswordModal(false);
+          setSuccessMessage('✅ Contraseña actualizada exitosamente');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        }}
+      />
     </div>
   );
 };

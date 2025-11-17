@@ -8,14 +8,16 @@ import { useAuth } from '../../hooks/useAuth';
 import { Input } from '../shared/Input';
 import { Button } from '../shared/Button';
 import { Card } from '../shared/Card';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { login, loading, getRole } = useAuth();
+  const { login, loading, getRole, user } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,23 +26,15 @@ export const Login = () => {
     try {
       await login({ username, password });
 
-      // Redirigir según rol después del login exitoso
-      const role = getRole();
-
-      switch (role) {
-        case 'super-admin':
-        case 'university-admin':
-        case 'admin':
-          navigate('/admin');
-          break;
-        case 'professor':
-          navigate('/professor');
-          break;
-        case 'user':
-        default:
-          navigate('/');
-          break;
+      // Verificar si es primer login (debe cambiar contraseña)
+      if (user?.first_login === true) {
+        // Mostrar modal de cambio de contraseña obligatorio
+        setShowChangePasswordModal(true);
+        return; // No redirigir aún
       }
+
+      // Redirigir según rol después del login exitoso
+      handleRedirectAfterLogin();
     } catch (err: unknown) {
       setError(
         err && typeof err === 'object' && 'message' in err
@@ -48,6 +42,41 @@ export const Login = () => {
           : 'Error al iniciar sesión'
       );
     }
+  };
+
+  /**
+   * Redirigir según rol del usuario
+   */
+  const handleRedirectAfterLogin = () => {
+    const role = getRole();
+
+    switch (role) {
+      case 'super-admin':
+      case 'university-admin':
+      case 'faculty-admin':
+      case 'professor-admin':
+      case 'admin':
+        navigate('/admin');
+        break;
+      case 'professor':
+        navigate('/professor');
+        break;
+      case 'user':
+      default:
+        navigate('/');
+        break;
+    }
+  };
+
+  /**
+   * Callback después de cambiar contraseña exitosamente
+   */
+  const handlePasswordChangeSuccess = () => {
+    // Cerrar modal
+    setShowChangePasswordModal(false);
+
+    // Redirigir según rol
+    handleRedirectAfterLogin();
   };
 
   return (
@@ -113,7 +142,8 @@ export const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-border-primary/60">
+          {/* REGISTRO PÚBLICO DESACTIVADO - Solo admins pueden crear usuarios */}
+          {/* <div className="mt-6 pt-6 border-t border-border-primary/60">
             <p className="text-sm text-text-tertiary text-center">
               ¿No tienes una cuenta?{' '}
               <a
@@ -123,9 +153,17 @@ export const Login = () => {
                 Regístrate
               </a>
             </p>
-          </div>
+          </div> */}
         </Card>
       </div>
+
+      {/* Modal de Cambio de Contraseña Obligatorio */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        isFirstLogin={true}
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </div>
   );
 };

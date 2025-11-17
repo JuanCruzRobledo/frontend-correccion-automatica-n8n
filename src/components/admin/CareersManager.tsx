@@ -18,7 +18,9 @@ import type { Career, Faculty, University } from '../../types';
 export const CareersManager = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super-admin';
+  const isFacultyAdmin = user?.role === 'faculty-admin';
   const userUniversityId = user?.university_id;
+  const userFacultyId = user?.faculty_id;
 
   const [careers, setCareers] = useState<Career[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
@@ -26,9 +28,9 @@ export const CareersManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtros (auto-filtrar por universidad si no es super-admin)
+  // Filtros (auto-filtrar por universidad si no es super-admin, por facultad si es faculty-admin)
   const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
-  const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterFacultyId, setFilterFacultyId] = useState(userFacultyId || '');
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,12 +50,15 @@ export const CareersManager = () => {
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
 
-  // Actualizar filtro de universidad cuando userUniversityId está disponible
+  // Actualizar filtros cuando user data está disponible
   useEffect(() => {
     if (userUniversityId && !filterUniversityId) {
       setFilterUniversityId(userUniversityId);
     }
-  }, [userUniversityId]);
+    if (userFacultyId && !filterFacultyId) {
+      setFilterFacultyId(userFacultyId);
+    }
+  }, [userUniversityId, userFacultyId]);
 
   // Cargar datos al montar
   useEffect(() => {
@@ -131,8 +136,8 @@ export const CareersManager = () => {
     setFormData({
       career_id: '',
       name: '',
-      faculty_id: '',
-      university_id: userUniversityId || '' // Pre-llenar para university-admin
+      faculty_id: userFacultyId || '', // Pre-llenar para faculty-admin
+      university_id: userUniversityId || '' // Pre-llenar para university-admin y faculty-admin
     });
     setFormErrors({ career_id: '', name: '', faculty_id: '', university_id: '' });
     setSelectedCareer(null);
@@ -294,24 +299,39 @@ export const CareersManager = () => {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Filtrar por Facultad
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={filterFacultyId}
-              onChange={(e) => setFilterFacultyId(e.target.value)}
-              disabled={!filterUniversityId}
-            >
-              <option value="">Todas las facultades</option>
-              {filteredFacultiesForFilter.map((faculty) => (
-                <option key={faculty._id} value={faculty.faculty_id}>
-                  {faculty.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Filtro Facultad: solo visible si NO es faculty-admin */}
+          {!isFacultyAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Filtrar por Facultad
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={filterFacultyId}
+                onChange={(e) => setFilterFacultyId(e.target.value)}
+                disabled={!filterUniversityId}
+              >
+                <option value="">Todas las facultades</option>
+                {filteredFacultiesForFilter.map((faculty) => (
+                  <option key={faculty._id} value={faculty.faculty_id}>
+                    {faculty.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Mostrar facultad como read-only para faculty-admin */}
+          {isFacultyAdmin && userFacultyId && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Tu Facultad
+              </label>
+              <div className="w-full px-3 py-2 bg-bg-tertiary/40 border border-border-primary rounded-lg text-text-secondary">
+                {faculties.find(f => f.faculty_id === userFacultyId)?.name || userFacultyId}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -379,33 +399,46 @@ export const CareersManager = () => {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Facultad *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={formData.faculty_id}
-              onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
-              disabled={!formData.university_id || modalMode === 'edit'}
-            >
-              <option value="">Seleccionar facultad...</option>
-              {filteredFacultiesForModal.map((faculty) => (
-                <option key={faculty._id} value={faculty.faculty_id}>
-                  {faculty.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.faculty_id && (
-              <p className="mt-1 text-xs text-danger-1">{formErrors.faculty_id}</p>
-            )}
-            {!formData.university_id && (
-              <p className="mt-1 text-xs text-text-disabled">Primero selecciona una universidad</p>
-            )}
-            {modalMode === 'edit' && (
-              <p className="mt-1 text-xs text-text-disabled">La facultad no se puede modificar</p>
-            )}
-          </div>
+          {/* Campo Facultad: solo visible si NO es faculty-admin */}
+          {!isFacultyAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Facultad *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={formData.faculty_id}
+                onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value })}
+                disabled={!formData.university_id || modalMode === 'edit'}
+              >
+                <option value="">Seleccionar facultad...</option>
+                {filteredFacultiesForModal.map((faculty) => (
+                  <option key={faculty._id} value={faculty.faculty_id}>
+                    {faculty.name}
+                  </option>
+                ))}
+              </select>
+              {formErrors.faculty_id && (
+                <p className="mt-1 text-xs text-danger-1">{formErrors.faculty_id}</p>
+              )}
+              {!formData.university_id && (
+                <p className="mt-1 text-xs text-text-disabled">Primero selecciona una universidad</p>
+              )}
+              {modalMode === 'edit' && (
+                <p className="mt-1 text-xs text-text-disabled">La facultad no se puede modificar</p>
+              )}
+            </div>
+          )}
+
+          {/* Mostrar facultad actual como read-only si es faculty-admin */}
+          {isFacultyAdmin && userFacultyId && (
+            <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+              <p className="text-sm text-text-disabled mb-1">Facultad</p>
+              <p className="text-text-primary font-medium">
+                {faculties.find(f => f.faculty_id === userFacultyId)?.name || userFacultyId}
+              </p>
+            </div>
+          )}
 
           <Input
             label="Nombre"

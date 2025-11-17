@@ -22,7 +22,12 @@ import type { Rubric, University, Faculty, Career, Course, Commission } from '..
 export const RubricsManager = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super-admin';
+  const isProfessorAdmin = user?.role === 'professor-admin';
+  const isProfessor = user?.role === 'professor'; // ⭐ NUEVO: Professor puede hacer CRUD
+  const isFacultyAdmin = user?.role === 'faculty-admin';
   const userUniversityId = user?.university_id;
+  const userFacultyId = user?.faculty_id;
+  const userCourseIds = user?.course_ids || [];
 
   const [rubrics, setRubrics] = useState<Rubric[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
@@ -33,13 +38,17 @@ export const RubricsManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtros (auto-filtrar por universidad si no es super-admin)
+  // Filtros (auto-filtrar según rol)
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
   const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
-  const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterFacultyId, setFilterFacultyId] = useState(userFacultyId || '');
   const [filterCareerId, setFilterCareerId] = useState('');
-  const [filterCourseId, setFilterCourseId] = useState('');
+  const [filterCourseId, setFilterCourseId] = useState(
+    isProfessorAdmin && userCourseIds.length === 1 ? userCourseIds[0] : ''
+  );
   const [filterCommissionId, setFilterCommissionId] = useState('');
+  // ⭐ Para professor: auto-filtrar por sus comisiones asignadas (sin mostrar filtros)
+  const [userCommissions, setUserCommissions] = useState<Commission[]>([]);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);

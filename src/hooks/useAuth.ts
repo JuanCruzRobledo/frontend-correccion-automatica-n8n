@@ -73,12 +73,49 @@ export const useAuth = () => {
   }, []);
 
   /**
-   * Verificar si el usuario es admin
+   * Verificar si el usuario es admin (cualquier tipo)
    */
   const isAdmin = useCallback((): boolean => {
     return authState.user?.role === 'admin' ||
            authState.user?.role === 'super-admin' ||
-           authState.user?.role === 'university-admin';
+           authState.user?.role === 'university-admin' ||
+           authState.user?.role === 'faculty-admin' ||
+           authState.user?.role === 'professor-admin';
+  }, [authState.user]);
+
+  /**
+   * Verificar si el usuario es super-admin
+   */
+  const isSuperAdmin = useCallback((): boolean => {
+    return authState.user?.role === 'super-admin';
+  }, [authState.user]);
+
+  /**
+   * Verificar si el usuario es university-admin
+   */
+  const isUniversityAdmin = useCallback((): boolean => {
+    return authState.user?.role === 'university-admin';
+  }, [authState.user]);
+
+  /**
+   * Verificar si el usuario es faculty-admin
+   */
+  const isFacultyAdmin = useCallback((): boolean => {
+    return authState.user?.role === 'faculty-admin';
+  }, [authState.user]);
+
+  /**
+   * Verificar si el usuario es professor-admin
+   */
+  const isProfessorAdmin = useCallback((): boolean => {
+    return authState.user?.role === 'professor-admin';
+  }, [authState.user]);
+
+  /**
+   * Verificar si el usuario es professor (normal)
+   */
+  const isProfessor = useCallback((): boolean => {
+    return authState.user?.role === 'professor';
   }, [authState.user]);
 
   /**
@@ -100,6 +137,11 @@ export const useAuth = () => {
     login,
     logout,
     isAdmin,
+    isSuperAdmin,
+    isUniversityAdmin,
+    isFacultyAdmin,
+    isProfessorAdmin,
+    isProfessor,
     hasRole,
     getRole,
   };

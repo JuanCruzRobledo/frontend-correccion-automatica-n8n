@@ -99,6 +99,29 @@ export const isAdmin = (): boolean => {
 };
 
 /**
+ * Cambiar contraseña del usuario autenticado
+ * @param currentPassword - Contraseña actual
+ * @param newPassword - Nueva contraseña
+ * @returns Promise con resultado de la operación
+ */
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<ApiResponse<User>> => {
+  const response = await api.post<ApiResponse<User>>('/api/auth/change-password', {
+    currentPassword,
+    newPassword,
+  });
+
+  // Actualizar usuario en localStorage (first_login = false)
+  if (response.data.success && response.data.data) {
+    localStorage.setItem(USER_KEY, JSON.stringify(response.data.data));
+  }
+
+  return response.data;
+};
+
+/**
  * Objeto con todas las funciones exportadas
  */
 const authService = {
@@ -110,6 +133,7 @@ const authService = {
   getUser,
   isAuthenticated,
   isAdmin,
+  changePassword,
 };
 
 export default authService;

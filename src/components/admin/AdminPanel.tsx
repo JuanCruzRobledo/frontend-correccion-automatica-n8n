@@ -1,9 +1,12 @@
 /**
  * AdminPanel - Panel de administración con tabs
  * Integra toda la gestión académica jerárquica
+ * Versión 4.0 - Soporte para roles jerárquicos (faculty-admin, professor-admin)
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { getAdminPanelTitle, getVisibleTabs } from '../../utils/roleHelper';
+import type { TitleInfo } from '../../utils/roleHelper';
 import { UniversitiesManager } from './UniversitiesManager';
 import { FacultiesManager } from './FacultiesManager';
 import { CareersManager } from './CareersManager';
@@ -34,28 +37,51 @@ const allTabs: Tab[] = [
 export const AdminPanel = () => {
   const { user } = useAuth();
 
-  // Filtrar tabs según rol del usuario
+  // Estado para el título dinámico
+  const [titleInfo, setTitleInfo] = useState<TitleInfo>({ title: 'Panel de Administración' });
+
+  // Cargar título dinámico según rol
+  useEffect(() => {
+    const loadTitle = async () => {
+      const info = await getAdminPanelTitle(user);
+      setTitleInfo(info);
+    };
+
+    loadTitle();
+  }, [user]);
+
+  // Filtrar tabs según rol del usuario usando el helper
   const tabs = useMemo(() => {
-    return allTabs.filter(tab => {
-      // Si el tab requiere super-admin, verificar que el usuario lo sea
-      if (tab.requiredRole === 'super-admin') {
-        return user?.role === 'super-admin';
-      }
-      return true;
-    });
+    const visibleTabIds = getVisibleTabs(user);
+    return allTabs.filter(tab => visibleTabIds.includes(tab.id));
   }, [user]);
 
   // Tab inicial: primer tab disponible para el usuario
   const [activeTab, setActiveTab] = useState<TabId>(tabs[0]?.id || 'faculties');
+
+  // Actualizar activeTab cuando cambien los tabs disponibles
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.find(t => t.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 min-h-[calc(100vh-5rem)]">
       {/* Sidebar con tabs */}
       <aside className="w-full lg:w-64 flex-shrink-0">
         <div className="bg-bg-secondary/70 border border-border-primary/60 rounded-2xl p-4 lg:sticky lg:top-4">
-          <h2 className="text-lg font-semibold text-text-primary mb-4 px-2">
-            Panel de Administración
-          </h2>
+          {/* Título dinámico según rol */}
+          <div className="mb-4 px-2">
+            <h2 className="text-lg font-semibold text-text-primary">
+              {titleInfo.title}
+            </h2>
+            {titleInfo.subtitle && (
+              <p className="text-xs text-text-disabled mt-1">
+                {titleInfo.subtitle}
+              </p>
+            )}
+          </div>
           <nav className="space-y-2">
             {tabs.map((tab) => (
               <button

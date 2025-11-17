@@ -20,7 +20,11 @@ import type { Commission, Course, Career, Faculty, University } from '../../type
 export const CommissionsManager = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super-admin';
+  const isProfessorAdmin = user?.role === 'professor-admin';
+  const isFacultyAdmin = user?.role === 'faculty-admin';
   const userUniversityId = user?.university_id;
+  const userFacultyId = user?.faculty_id;
+  const userCourseIds = user?.course_ids || [];
 
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -31,12 +35,14 @@ export const CommissionsManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Filtros (auto-filtrar por universidad si no es super-admin)
+  // Filtros (auto-filtrar por universidad, facultad y curso según rol)
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
   const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
-  const [filterFacultyId, setFilterFacultyId] = useState('');
+  const [filterFacultyId, setFilterFacultyId] = useState(userFacultyId || '');
   const [filterCareerId, setFilterCareerId] = useState('');
-  const [filterCourseId, setFilterCourseId] = useState('');
+  const [filterCourseId, setFilterCourseId] = useState(
+    isProfessorAdmin && userCourseIds.length === 1 ? userCourseIds[0] : ''
+  );
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);

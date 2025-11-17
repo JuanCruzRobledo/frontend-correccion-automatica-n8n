@@ -153,8 +153,11 @@ export interface User {
   _id: string;
   username: string;
   name: string;
-  role: 'super-admin' | 'university-admin' | 'professor' | 'user' | 'admin';
+  role: 'super-admin' | 'university-admin' | 'faculty-admin' | 'professor-admin' | 'professor' | 'user' | 'admin';
   university_id?: string;
+  faculty_id?: string; // Solo para faculty-admin
+  course_ids?: string[]; // Solo para professor-admin
+  first_login?: boolean; // Indica si debe cambiar contraseña
   deleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -164,8 +167,11 @@ export interface UserProfile {
   _id: string;
   username: string;
   name: string;
-  role: 'super-admin' | 'university-admin' | 'professor' | 'user' | 'admin';
+  role: 'super-admin' | 'university-admin' | 'faculty-admin' | 'professor-admin' | 'professor' | 'user' | 'admin';
   university_id?: string;
+  faculty_id?: string;
+  course_ids?: string[];
+  first_login?: boolean;
   hasGeminiApiKey: boolean;
   gemini_api_key?: string | null; // API key desencriptada
   gemini_api_key_last_4?: string;
