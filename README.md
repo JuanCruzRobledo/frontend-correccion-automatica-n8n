@@ -339,6 +339,157 @@ frontend-correccion-automatica-n8n/
 
 ---
 
+## 🎨 Patrones de UI Específicos por Rol
+
+El sistema implementa patrones de UI personalizados para diferentes roles jerárquicos, optimizando la experiencia según el contexto del usuario.
+
+### 👨‍🏫 Professor-Admin Experience
+
+#### Filtros Simplificados
+Los profesores solo ven filtros relevantes a su contexto, ya que sus datos jerárquicos están preestablecidos.
+
+**Ubicación**: `RubricsManager.tsx`, `CommissionsManager.tsx`
+
+**Comportamiento**:
+- Solo muestra selector de **Comisión**
+- Auto-completa universidad, facultad, carrera, materia desde el curso asignado
+- Valida únicamente la selección de comisión
+
+**Ejemplo** (`RubricsManager.tsx`):
+```typescript
+{isProfessorAdmin ? (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <select>{/* Solo Comisión */}</select>
+  </div>
+) : (
+  // Filtros completos para otros roles
+)}
+```
+
+#### Paneles Informativos en Modales
+Los modales de creación muestran datos jerárquicos como paneles de solo lectura en lugar de selectores.
+
+**Patrón visual**:
+- Fondo gris suave (`bg-bg-tertiary/50`)
+- Borde sutil (`border-border-secondary`)
+- Datos organizados verticalmente
+- No permite edición
+
+**Ejemplo** (`CommissionsManager.tsx`):
+```typescript
+{isProfessorAdmin && modalMode === 'create' && (
+  <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+    <p className="text-sm font-medium">Materia Asignada</p>
+    <div><p className="text-xs text-text-disabled">Universidad</p>...</div>
+    <div><p className="text-xs text-text-disabled">Facultad</p>...</div>
+    <div><p className="text-xs text-text-disabled">Carrera</p>...</div>
+    <div><p className="text-xs text-text-disabled">Materia</p>...</div>
+  </div>
+)}
+```
+
+#### Layout Subordinado (AdminPanel)
+Diseño visual que muestra claramente la dependencia entre la selección de materia y las opciones de gestión.
+
+**Ubicación**: `AdminPanel.tsx` (líneas ~200-350)
+
+**Estructura**:
+```typescript
+<div className="space-y-6">
+  {/* Paso 1: Selector de Materia - Card destacado */}
+  <div className="bg-gradient-to-br from-accent-1/10 via-accent-2/10 to-accent-3/10
+                  border-2 border-accent-1/30 rounded-2xl p-6 shadow-lg">
+    <h3>Paso 1: Selecciona la Materia a Gestionar</h3>
+    <select>{/* Materias del profesor */}</select>
+  </div>
+
+  {/* Paso 2: Área de gestión - Indentada y subordinada */}
+  {selectedCourse && (
+    <div className="bg-bg-secondary/50 border border-border-primary/60
+                    rounded-2xl p-6 ml-0 lg:ml-8">
+      <h3>Paso 2: Gestiona tu Materia</h3>
+      {/* Tabs horizontales */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        {tabs.map(/* ... */)}
+      </div>
+      {/* Contenido del tab */}
+    </div>
+  )}
+</div>
+```
+
+**Características visuales**:
+- Gradiente en card de selección para destacar
+- Indentación (`ml-8`) en área de gestión
+- Barra de color lateral como indicador visual
+- Tabs horizontales en lugar de sidebar vertical
+- Estado vacío cuando no hay materia seleccionada
+
+---
+
+### 👨‍💼 Faculty-Admin Experience
+
+#### Auto-filtrado de Datos
+El backend filtra automáticamente las carreras por `faculty_id` desde el token JWT.
+
+**Solución al bug de timing** (`CoursesManager.tsx:150`):
+```typescript
+// Fix: Esperar a que el usuario esté disponible
+useEffect(() => {
+  if (user) {
+    loadData();
+  }
+}, [user?.role]); // Dependencia en user?.role en lugar de []
+```
+
+**Servicio correcto**:
+```typescript
+if (isFacultyAdmin) {
+  const careersData = await careerService.getCareers(); // Filtrado por backend
+} else {
+  const careersData = await careerService.getAllCareers(); // Todas
+}
+```
+
+#### Patrón de Paneles Informativos
+Similar a professor-admin, pero con más libertad de selección.
+
+**Datos read-only**: Universidad, Facultad
+**Datos editables**: Carrera, Año, Materia, Comisión
+
+**Componentes actualizados**:
+- `CareersManager.tsx` - Panel de universidad/facultad en creación
+- `CoursesManager.tsx` - Panel de universidad/facultad en creación
+- `CommissionsManager.tsx` - Panel + selectores de carrera/materia
+- `RubricsManager.tsx` - Panel + selectores de carrera/materia/comisión
+
+**Ejemplo** (`CoursesManager.tsx`):
+```typescript
+{isFacultyAdmin && modalMode === 'create' && (
+  <>
+    {/* Panel informativo */}
+    <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+      <p className="text-sm font-medium mb-2">Facultad Asignada</p>
+      <div>
+        <p className="text-xs text-text-disabled">Universidad</p>
+        <p className="text-sm text-text-primary font-medium">{universityName}</p>
+      </div>
+      <div>
+        <p className="text-xs text-text-disabled">Facultad</p>
+        <p className="text-sm text-text-primary font-medium">{facultyName}</p>
+      </div>
+    </div>
+
+    {/* Selectores permitidos */}
+    <select>{/* Carrera */}</select>
+    <input />{/* Año */}
+    <select>{/* Materia */}</select>
+  </>
+)}
+```
+
+---
+
 ## 🧩 Componentes Principales
 
 ### `App.tsx` - Router Principal

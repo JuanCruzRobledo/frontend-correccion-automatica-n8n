@@ -19,7 +19,11 @@ import commissionService from '../../services/commissionService';
 import n8nService from '../../services/n8nService';
 import type { Rubric, University, Faculty, Career, Course, Commission } from '../../types';
 
-export const RubricsManager = () => {
+interface RubricsManagerProps {
+  selectedProfessorCourse?: string;
+}
+
+export const RubricsManager = ({ selectedProfessorCourse }: RubricsManagerProps) => {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super-admin';
   const isProfessorAdmin = user?.role === 'professor-admin';
@@ -43,9 +47,7 @@ export const RubricsManager = () => {
   const [filterUniversityId, setFilterUniversityId] = useState(userUniversityId || '');
   const [filterFacultyId, setFilterFacultyId] = useState(userFacultyId || '');
   const [filterCareerId, setFilterCareerId] = useState('');
-  const [filterCourseId, setFilterCourseId] = useState(
-    isProfessorAdmin && userCourseIds.length === 1 ? userCourseIds[0] : ''
-  );
+  const [filterCourseId, setFilterCourseId] = useState('');
   const [filterCommissionId, setFilterCommissionId] = useState('');
   // ⭐ Para professor: auto-filtrar por sus comisiones asignadas (sin mostrar filtros)
   const [userCommissions, setUserCommissions] = useState<Commission[]>([]);
@@ -111,10 +113,24 @@ export const RubricsManager = () => {
     loadData();
   }, []);
 
-  // Recargar rúbricas cuando cambian los filtros
+  // Recargar rúbricas cuando cambian los filtros o la materia seleccionada (professor-admin)
   useEffect(() => {
     loadRubrics();
-  }, [filterYear, filterUniversityId, filterFacultyId, filterCareerId, filterCourseId, filterCommissionId]);
+  }, [filterYear, filterUniversityId, filterFacultyId, filterCareerId, filterCourseId, filterCommissionId, selectedProfessorCourse]);
+
+  // Auto-configurar filtros cuando professor-admin selecciona una materia
+  useEffect(() => {
+    if (isProfessorAdmin && selectedProfessorCourse) {
+      const course = courses.find(c => c.course_id === selectedProfessorCourse);
+      if (course) {
+        setFilterCourseId(selectedProfessorCourse);
+        setFilterCareerId(course.career_id);
+        setFilterFacultyId(course.faculty_id);
+        setFilterUniversityId(course.university_id);
+        setFilterYear(course.year?.toString() || new Date().getFullYear().toString());
+      }
+    }
+  }, [isProfessorAdmin, selectedProfessorCourse, courses]);
 
   const loadData = async () => {
     try {
@@ -144,12 +160,21 @@ export const RubricsManager = () => {
       setLoading(true);
       setError('');
       const params: any = {};
-      if (filterYear) params.year = parseInt(filterYear);
-      if (filterUniversityId) params.university_id = filterUniversityId;
-      if (filterFacultyId) params.faculty_id = filterFacultyId;
-      if (filterCareerId) params.career_id = filterCareerId;
-      if (filterCourseId) params.course_id = filterCourseId;
-      if (filterCommissionId) params.commission_id = filterCommissionId;
+
+      // Para professor-admin: filtrar por la materia seleccionada y opcionalmente por comisión
+      if (isProfessorAdmin && selectedProfessorCourse) {
+        params.course_id = selectedProfessorCourse;
+        if (filterCommissionId) params.commission_id = filterCommissionId;
+      } else {
+        // Para otros roles: aplicar filtros normales
+        if (filterYear) params.year = parseInt(filterYear);
+        if (filterUniversityId) params.university_id = filterUniversityId;
+        if (filterFacultyId) params.faculty_id = filterFacultyId;
+        if (filterCareerId) params.career_id = filterCareerId;
+        if (filterCourseId) params.course_id = filterCourseId;
+        if (filterCommissionId) params.commission_id = filterCommissionId;
+      }
+
       const data = await rubricService.getRubrics(params);
       setRubrics(data);
     } catch (err: unknown) {
@@ -165,19 +190,41 @@ export const RubricsManager = () => {
 
   const handleCreateFromJSON = () => {
     setModalMode('create-json');
-    setFormData({
-      name: '',
-      commission_id: filterCommissionId || '',
-      course_id: filterCourseId || '',
-      career_id: filterCareerId || '',
-      faculty_id: filterFacultyId || '',
-      university_id: userUniversityId || filterUniversityId || '',
-      rubric_type: 'tp' as const,
-      rubric_number: 1,
-      year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
-      rubric_json: '',
-      pdf_file: null,
-    });
+
+    // Para professor-admin: auto-llenar con los datos de la materia seleccionada
+    if (isProfessorAdmin && selectedProfessorCourse) {
+      const course = courses.find(c => c.course_id === selectedProfessorCourse);
+      if (course) {
+        setFormData({
+          name: '',
+          commission_id: filterCommissionId || '',
+          course_id: selectedProfessorCourse,
+          career_id: course.career_id,
+          faculty_id: course.faculty_id,
+          university_id: course.university_id,
+          rubric_type: 'tp' as const,
+          rubric_number: 1,
+          year: course.year || new Date().getFullYear(),
+          rubric_json: '',
+          pdf_file: null,
+        });
+      }
+    } else {
+      setFormData({
+        name: '',
+        commission_id: filterCommissionId || '',
+        course_id: filterCourseId || '',
+        career_id: filterCareerId || '',
+        faculty_id: filterFacultyId || '',
+        university_id: userUniversityId || filterUniversityId || '',
+        rubric_type: 'tp' as const,
+        rubric_number: 1,
+        year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
+        rubric_json: '',
+        pdf_file: null,
+      });
+    }
+
     setFormErrors({
       name: '',
       commission_id: '',
@@ -197,19 +244,41 @@ export const RubricsManager = () => {
 
   const handleCreateFromPDF = () => {
     setModalMode('create-pdf');
-    setFormData({
-      name: '',
-      commission_id: filterCommissionId || '',
-      course_id: filterCourseId || '',
-      career_id: filterCareerId || '',
-      faculty_id: filterFacultyId || '',
-      university_id: userUniversityId || filterUniversityId || '',
-      rubric_type: 'tp' as const,
-      rubric_number: 1,
-      year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
-      rubric_json: '',
-      pdf_file: null,
-    });
+
+    // Para professor-admin: auto-llenar con los datos de la materia seleccionada
+    if (isProfessorAdmin && selectedProfessorCourse) {
+      const course = courses.find(c => c.course_id === selectedProfessorCourse);
+      if (course) {
+        setFormData({
+          name: '',
+          commission_id: filterCommissionId || '',
+          course_id: selectedProfessorCourse,
+          career_id: course.career_id,
+          faculty_id: course.faculty_id,
+          university_id: course.university_id,
+          rubric_type: 'tp' as const,
+          rubric_number: 1,
+          year: course.year || new Date().getFullYear(),
+          rubric_json: '',
+          pdf_file: null,
+        });
+      }
+    } else {
+      setFormData({
+        name: '',
+        commission_id: filterCommissionId || '',
+        course_id: filterCourseId || '',
+        career_id: filterCareerId || '',
+        faculty_id: filterFacultyId || '',
+        university_id: userUniversityId || filterUniversityId || '',
+        rubric_type: 'tp' as const,
+        rubric_number: 1,
+        year: filterYear ? parseInt(filterYear) : new Date().getFullYear(),
+        rubric_json: '',
+        pdf_file: null,
+      });
+    }
+
     setFormErrors({
       name: '',
       commission_id: '',
@@ -583,9 +652,10 @@ export const RubricsManager = () => {
     : faculties;
 
   // Carreras filtradas para el filtro principal
-  const filteredCareersForFilter = filterFacultyId
-    ? careers.filter(c => c.faculty_id === filterFacultyId)
-    : careers;
+  // Para faculty-admin, careers ya viene filtrado del backend
+  const filteredCareersForFilter = isFacultyAdmin
+    ? careers
+    : (filterFacultyId ? careers.filter(c => c.faculty_id === filterFacultyId) : []);
 
   // Materias filtradas para el filtro principal
   const filteredCoursesForFilter = filterCareerId
@@ -627,10 +697,31 @@ export const RubricsManager = () => {
     : [];
 
   // Verificar si todos los filtros están seleccionados
-  const allFiltersSelected = filterYear && filterUniversityId && filterFacultyId && filterCareerId && filterCourseId && filterCommissionId;
+  const allFiltersSelected = isProfessorAdmin
+    ? filterCommissionId && selectedProfessorCourse  // Para professor-admin: solo necesita comisión y materia seleccionada
+    : filterYear && filterUniversityId && filterFacultyId && filterCareerId && filterCourseId && filterCommissionId;
+
+  // Título dinámico según el rol
+  const getTitle = () => {
+    if (isProfessorAdmin && selectedProfessorCourse) {
+      const course = courses.find(c => c.course_id === selectedProfessorCourse);
+      const career = careers.find(ca => ca.career_id === course?.career_id);
+      return `Gestión de Rúbricas - ${course?.name || selectedProfessorCourse} (${career?.name || ''})`;
+    }
+    if (isFacultyAdmin && userFacultyId && userUniversityId) {
+      const faculty = faculties.find(f => f.faculty_id === userFacultyId);
+      const university = universities.find(u => u.university_id === userUniversityId);
+      return `Gestión de Rúbricas - ${faculty?.name || userFacultyId} de ${university?.name || userUniversityId}`;
+    }
+    if (userUniversityId && !isSuperAdmin) {
+      const university = universities.find(u => u.university_id === userUniversityId);
+      return `Gestión de Rúbricas - ${university?.name || userUniversityId}`;
+    }
+    return 'Gestión de Rúbricas';
+  };
 
   return (
-    <Card title="Gestión de Rúbricas">
+    <Card title={getTitle()}>
       <div className="mb-4 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <p className="text-text-disabled text-sm">{rubrics.length} rúbricas registradas</p>
@@ -644,153 +735,183 @@ export const RubricsManager = () => {
         </div>
 
         {/* Filtros */}
-        <div className={`grid grid-cols-1 md:grid-cols-3 ${isSuperAdmin ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-3`}>
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Año *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
-              value={filterYear}
-              onChange={(e) => {
-                setFilterYear(e.target.value);
-                setFilterFacultyId('');
-                setFilterCareerId('');
-                setFilterCourseId('');
-                setFilterCommissionId('');
-              }}
-            >
-              <option value="">Seleccionar año...</option>
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtro Universidad: solo para super-admin */}
-          {isSuperAdmin && (
+        {isProfessorAdmin ? (
+          // Para professor-admin: solo mostrar filtro de comisión
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">
-                Universidad *
+                Comisión *
               </label>
               <select
                 className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-                value={filterUniversityId}
+                value={filterCommissionId}
+                onChange={(e) => setFilterCommissionId(e.target.value)}
+                disabled={!filterCourseId}
+              >
+                <option value="">Seleccionar comisión...</option>
+                {filteredCommissionsForFilter.map((commission) => (
+                  <option key={commission._id} value={commission.commission_id}>
+                    {commission.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        ) : (
+          // Para otros roles: mostrar todos los filtros
+          <div className={`grid grid-cols-1 md:grid-cols-3 ${isSuperAdmin ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-3`}>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Año *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+                value={filterYear}
                 onChange={(e) => {
-                  setFilterUniversityId(e.target.value);
+                  setFilterYear(e.target.value);
                   setFilterFacultyId('');
                   setFilterCareerId('');
                   setFilterCourseId('');
                   setFilterCommissionId('');
                 }}
-                disabled={!filterYear}
               >
-                <option value="">Seleccionar universidad...</option>
-                {universities.map((uni) => (
-                  <option key={uni._id} value={uni.university_id}>
-                    {uni.name}
+                <option value="">Seleccionar año...</option>
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
                   </option>
                 ))}
               </select>
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Facultad *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={filterFacultyId}
-              onChange={(e) => {
-                setFilterFacultyId(e.target.value);
-                setFilterCareerId('');
-                setFilterCourseId('');
-                setFilterCommissionId('');
-              }}
-              disabled={!filterUniversityId}
-            >
-              <option value="">Seleccionar facultad...</option>
-              {filteredFacultiesForFilter.map((faculty) => (
-                <option key={faculty._id} value={faculty.faculty_id}>
-                  {faculty.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Filtro Universidad: solo para super-admin */}
+            {isSuperAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Universidad *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={filterUniversityId}
+                  onChange={(e) => {
+                    setFilterUniversityId(e.target.value);
+                    setFilterFacultyId('');
+                    setFilterCareerId('');
+                    setFilterCourseId('');
+                    setFilterCommissionId('');
+                  }}
+                  disabled={!filterYear}
+                >
+                  <option value="">Seleccionar universidad...</option>
+                  {universities.map((uni) => (
+                    <option key={uni._id} value={uni.university_id}>
+                      {uni.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Carrera *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={filterCareerId}
-              onChange={(e) => {
-                setFilterCareerId(e.target.value);
-                setFilterCourseId('');
-                setFilterCommissionId('');
-              }}
-              disabled={!filterFacultyId}
-            >
-              <option value="">Seleccionar carrera...</option>
-              {filteredCareersForFilter.map((career) => (
-                <option key={career._id} value={career.career_id}>
-                  {career.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Filtro Facultad: solo visible si NO es faculty-admin */}
+            {!isFacultyAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Facultad *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={filterFacultyId}
+                  onChange={(e) => {
+                    setFilterFacultyId(e.target.value);
+                    setFilterCareerId('');
+                    setFilterCourseId('');
+                    setFilterCommissionId('');
+                  }}
+                  disabled={!filterUniversityId}
+                >
+                  <option value="">Seleccionar facultad...</option>
+                  {filteredFacultiesForFilter.map((faculty) => (
+                    <option key={faculty._id} value={faculty.faculty_id}>
+                      {faculty.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Materia *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={filterCourseId}
-              onChange={(e) => {
-                setFilterCourseId(e.target.value);
-                setFilterCommissionId('');
-              }}
-              disabled={!filterCareerId}
-            >
-              <option value="">Seleccionar materia...</option>
-              {filteredCoursesForFilter.map((course) => (
-                <option key={course._id} value={course.course_id}>
-                  {course.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Carrera *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={filterCareerId}
+                onChange={(e) => {
+                  setFilterCareerId(e.target.value);
+                  setFilterCourseId('');
+                  setFilterCommissionId('');
+                }}
+                disabled={isFacultyAdmin ? false : !filterFacultyId}
+              >
+                <option value="">Seleccionar carrera...</option>
+                {filteredCareersForFilter.map((career) => (
+                  <option key={career._id} value={career.career_id}>
+                    {career.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Comisión *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={filterCommissionId}
-              onChange={(e) => setFilterCommissionId(e.target.value)}
-              disabled={!filterCourseId}
-            >
-              <option value="">Seleccionar comisión...</option>
-              {filteredCommissionsForFilter.map((commission) => (
-                <option key={commission._id} value={commission.commission_id}>
-                  {commission.name}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Materia *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={filterCourseId}
+                onChange={(e) => {
+                  setFilterCourseId(e.target.value);
+                  setFilterCommissionId('');
+                }}
+                disabled={!filterCareerId}
+              >
+                <option value="">Seleccionar materia...</option>
+                {filteredCoursesForFilter.map((course) => (
+                  <option key={course._id} value={course.course_id}>
+                    {course.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">
+                Comisión *
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                value={filterCommissionId}
+                onChange={(e) => setFilterCommissionId(e.target.value)}
+                disabled={!filterCourseId}
+              >
+                <option value="">Seleccionar comisión...</option>
+                {filteredCommissionsForFilter.map((commission) => (
+                  <option key={commission._id} value={commission.commission_id}>
+                    {commission.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Mensaje cuando no están todos los filtros seleccionados */}
         {!allFiltersSelected && (
           <div className="mt-3 bg-accent-1/10 border border-accent-1/50 rounded-xl p-3">
             <p className="text-accent-1 text-sm">
-              📋 Por favor, selecciona todos los filtros (Año, Universidad, Facultad, Carrera, Materia y Comisión) para ver las rúbricas.
+              {isProfessorAdmin
+                ? '📋 Por favor, selecciona una comisión para ver las rúbricas.'
+                : '📋 Por favor, selecciona todos los filtros (Año, Universidad, Facultad, Carrera, Materia y Comisión) para ver las rúbricas.'}
             </p>
           </div>
         )}
@@ -845,128 +966,247 @@ export const RubricsManager = () => {
             tooltip="Nombre descriptivo de la rúbrica de evaluación. Ej: TP1 - Listas, Parcial 2do Cuatrimestre"
           />
 
-          {/* Campo Universidad: solo visible para super-admin */}
-          {isSuperAdmin && (
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">
-                Universidad *
-              </label>
-              <select
-                className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
-                value={formData.university_id}
-                onChange={(e) => setFormData({ ...formData, university_id: e.target.value, faculty_id: '', career_id: '', course_id: '', commission_id: '' })}
-                disabled={modalMode === 'view' || modalMode === 'edit'}
-              >
-                <option value="">Seleccionar universidad...</option>
-                {universities.map((uni) => (
-                  <option key={uni._id} value={uni.university_id}>
-                    {uni.name}
-                  </option>
-                ))}
-              </select>
-              {formErrors.university_id && (
-                <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
-              )}
-              {(modalMode === 'edit' || modalMode === 'view') && (
-                <p className="mt-1 text-xs text-text-disabled">La universidad no se puede modificar</p>
-              )}
+          {/* Para professor-admin en modo creación: mostrar solo info de la materia */}
+          {isProfessorAdmin && (modalMode === 'create-json' || modalMode === 'create-pdf') && selectedProfessorCourse && (
+            <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3 space-y-2">
+              <p className="text-sm font-medium text-text-primary mb-2">Materia Asignada</p>
+              <div>
+                <p className="text-xs text-text-disabled">Materia</p>
+                <p className="text-sm text-text-primary font-medium">
+                  {courses.find(c => c.course_id === selectedProfessorCourse)?.name || selectedProfessorCourse}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-disabled">Carrera</p>
+                <p className="text-sm text-text-primary">
+                  {careers.find(ca => ca.career_id === formData.career_id)?.name || formData.career_id}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-disabled">Facultad</p>
+                <p className="text-sm text-text-primary">
+                  {faculties.find(f => f.faculty_id === formData.faculty_id)?.name || formData.faculty_id}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-disabled">Universidad</p>
+                <p className="text-sm text-text-primary">
+                  {universities.find(u => u.university_id === formData.university_id)?.name || formData.university_id}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-disabled">Año</p>
+                <p className="text-sm text-text-primary">{formData.year}</p>
+              </div>
             </div>
           )}
 
-          {/* Mostrar universidad actual si no es super-admin */}
-          {!isSuperAdmin && userUniversityId && (
-            <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
-              <p className="text-sm text-text-disabled mb-1">Universidad</p>
-              <p className="text-text-primary font-medium">
-                {universities.find(u => u.university_id === userUniversityId)?.name || userUniversityId}
-              </p>
+          {/* Para faculty-admin en modo creación: mostrar info de universidad y facultad */}
+          {isFacultyAdmin && (modalMode === 'create-json' || modalMode === 'create-pdf') && userFacultyId && userUniversityId && (
+            <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3 space-y-2">
+              <p className="text-sm font-medium text-text-primary mb-2">Facultad Asignada</p>
+              <div>
+                <p className="text-xs text-text-disabled">Universidad</p>
+                <p className="text-sm text-text-primary font-medium">
+                  {universities.find(u => u.university_id === userUniversityId)?.name || userUniversityId}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-disabled">Facultad</p>
+                <p className="text-sm text-text-primary font-medium">
+                  {faculties.find(f => f.faculty_id === userFacultyId)?.name || userFacultyId}
+                </p>
+              </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Facultad *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={formData.faculty_id}
-              onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value, career_id: '', course_id: '', commission_id: '' })}
-              disabled={!formData.university_id || modalMode === 'view' || modalMode === 'edit'}
-            >
-              <option value="">Seleccionar facultad...</option>
-              {filteredFacultiesForModal.map((faculty) => (
-                <option key={faculty._id} value={faculty.faculty_id}>
-                  {faculty.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.faculty_id && (
-              <p className="mt-1 text-xs text-danger-1">{formErrors.faculty_id}</p>
-            )}
-          </div>
+          {/* Campos selectores para faculty-admin en modo creación: Carrera, Año, Materia */}
+          {isFacultyAdmin && (modalMode === 'create-json' || modalMode === 'create-pdf') && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Carrera *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={formData.career_id}
+                  onChange={(e) => setFormData({ ...formData, career_id: e.target.value, course_id: '', commission_id: '' })}
+                >
+                  <option value="">Seleccionar carrera...</option>
+                  {filteredCareersForModal.map((career) => (
+                    <option key={career._id} value={career.career_id}>
+                      {career.name}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.career_id && (
+                  <p className="mt-1 text-xs text-danger-1">{formErrors.career_id}</p>
+                )}
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Carrera *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={formData.career_id}
-              onChange={(e) => setFormData({ ...formData, career_id: e.target.value, course_id: '', commission_id: '' })}
-              disabled={!formData.faculty_id || modalMode === 'view' || modalMode === 'edit'}
-            >
-              <option value="">Seleccionar carrera...</option>
-              {filteredCareersForModal.map((career) => (
-                <option key={career._id} value={career.career_id}>
-                  {career.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.career_id && (
-              <p className="mt-1 text-xs text-danger-1">{formErrors.career_id}</p>
-            )}
-          </div>
+              <div>
+                <Input
+                  label="Año *"
+                  type="number"
+                  placeholder="2025"
+                  value={formData.year.toString()}
+                  onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear(), course_id: '', commission_id: '' })}
+                  error={formErrors.year}
+                />
+              </div>
 
-          <div>
-            <Input
-              label="Año *"
-              type="number"
-              placeholder="2025"
-              value={formData.year.toString()}
-              onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear(), course_id: '', commission_id: '' })}
-              error={formErrors.year}
-              disabled={modalMode === 'view' || modalMode === 'edit'}
-            />
-            {(modalMode === 'edit' || modalMode === 'view') && (
-              <p className="mt-1 text-xs text-text-disabled">El año no se puede modificar</p>
-            )}
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Materia *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={formData.course_id}
+                  onChange={(e) => setFormData({ ...formData, course_id: e.target.value, commission_id: '' })}
+                  disabled={!formData.career_id}
+                >
+                  <option value="">Seleccionar materia...</option>
+                  {filteredCoursesForModal.map((course) => (
+                    <option key={course._id} value={course.course_id}>
+                      {course.name} ({course.year})
+                    </option>
+                  ))}
+                </select>
+                {formErrors.course_id && (
+                  <p className="mt-1 text-xs text-danger-1">{formErrors.course_id}</p>
+                )}
+              </div>
+            </>
+          )}
 
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">
-              Materia *
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
-              value={formData.course_id}
-              onChange={(e) => setFormData({ ...formData, course_id: e.target.value, commission_id: '' })}
-              disabled={!formData.career_id || modalMode === 'view' || modalMode === 'edit'}
-            >
-              <option value="">Seleccionar materia...</option>
-              {filteredCoursesForModal.map((course) => (
-                <option key={course._id} value={course.course_id}>
-                  {course.name} ({course.year})
-                </option>
-              ))}
-            </select>
-            {formErrors.course_id && (
-              <p className="mt-1 text-xs text-danger-1">{formErrors.course_id}</p>
-            )}
-            {(modalMode === 'edit' || modalMode === 'view') && (
-              <p className="mt-1 text-xs text-text-disabled">La materia no se puede modificar</p>
-            )}
-          </div>
+          {/* Para otros roles o modo edición/vista: mostrar campos normales */}
+          {!(isProfessorAdmin && (modalMode === 'create-json' || modalMode === 'create-pdf')) && !(isFacultyAdmin && (modalMode === 'create-json' || modalMode === 'create-pdf')) && (
+            <>
+              {/* Campo Universidad: solo visible para super-admin */}
+              {isSuperAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Universidad *
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1"
+                    value={formData.university_id}
+                    onChange={(e) => setFormData({ ...formData, university_id: e.target.value, faculty_id: '', career_id: '', course_id: '', commission_id: '' })}
+                    disabled={modalMode === 'view' || modalMode === 'edit'}
+                  >
+                    <option value="">Seleccionar universidad...</option>
+                    {universities.map((uni) => (
+                      <option key={uni._id} value={uni.university_id}>
+                        {uni.name}
+                      </option>
+                    ))}
+                  </select>
+                  {formErrors.university_id && (
+                    <p className="mt-1 text-xs text-danger-1">{formErrors.university_id}</p>
+                  )}
+                  {(modalMode === 'edit' || modalMode === 'view') && (
+                    <p className="mt-1 text-xs text-text-disabled">La universidad no se puede modificar</p>
+                  )}
+                </div>
+              )}
 
+              {/* Mostrar universidad actual si no es super-admin */}
+              {!isSuperAdmin && userUniversityId && (
+                <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+                  <p className="text-sm text-text-disabled mb-1">Universidad</p>
+                  <p className="text-text-primary font-medium">
+                    {universities.find(u => u.university_id === userUniversityId)?.name || userUniversityId}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Facultad *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={formData.faculty_id}
+                  onChange={(e) => setFormData({ ...formData, faculty_id: e.target.value, career_id: '', course_id: '', commission_id: '' })}
+                  disabled={!formData.university_id || modalMode === 'view' || modalMode === 'edit'}
+                >
+                  <option value="">Seleccionar facultad...</option>
+                  {filteredFacultiesForModal.map((faculty) => (
+                    <option key={faculty._id} value={faculty.faculty_id}>
+                      {faculty.name}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.faculty_id && (
+                  <p className="mt-1 text-xs text-danger-1">{formErrors.faculty_id}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Carrera *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={formData.career_id}
+                  onChange={(e) => setFormData({ ...formData, career_id: e.target.value, course_id: '', commission_id: '' })}
+                  disabled={!formData.faculty_id || modalMode === 'view' || modalMode === 'edit'}
+                >
+                  <option value="">Seleccionar carrera...</option>
+                  {filteredCareersForModal.map((career) => (
+                    <option key={career._id} value={career.career_id}>
+                      {career.name}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.career_id && (
+                  <p className="mt-1 text-xs text-danger-1">{formErrors.career_id}</p>
+                )}
+              </div>
+
+              <div>
+                <Input
+                  label="Año *"
+                  type="number"
+                  placeholder="2025"
+                  value={formData.year.toString()}
+                  onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear(), course_id: '', commission_id: '' })}
+                  error={formErrors.year}
+                  disabled={modalMode === 'view' || modalMode === 'edit'}
+                />
+                {(modalMode === 'edit' || modalMode === 'view') && (
+                  <p className="mt-1 text-xs text-text-disabled">El año no se puede modificar</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                  Materia *
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
+                  value={formData.course_id}
+                  onChange={(e) => setFormData({ ...formData, course_id: e.target.value, commission_id: '' })}
+                  disabled={!formData.career_id || modalMode === 'view' || modalMode === 'edit'}
+                >
+                  <option value="">Seleccionar materia...</option>
+                  {filteredCoursesForModal.map((course) => (
+                    <option key={course._id} value={course.course_id}>
+                      {course.name} ({course.year})
+                    </option>
+                  ))}
+                </select>
+                {formErrors.course_id && (
+                  <p className="mt-1 text-xs text-danger-1">{formErrors.course_id}</p>
+                )}
+                {(modalMode === 'edit' || modalMode === 'view') && (
+                  <p className="mt-1 text-xs text-text-disabled">La materia no se puede modificar</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Selector de Comisión: siempre visible */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">
               Comisión *
@@ -975,7 +1215,11 @@ export const RubricsManager = () => {
               className="w-full px-3 py-2 bg-bg-secondary border border-border-primary rounded-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-1 disabled:opacity-50"
               value={formData.commission_id}
               onChange={(e) => setFormData({ ...formData, commission_id: e.target.value })}
-              disabled={!formData.course_id || modalMode === 'view' || modalMode === 'edit'}
+              disabled={
+                (isProfessorAdmin || isFacultyAdmin)
+                  ? !formData.course_id  // Para professor/faculty-admin: solo requiere course_id
+                  : (!formData.course_id || modalMode === 'view' || modalMode === 'edit')  // Para otros: reglas normales
+              }
             >
               <option value="">Seleccionar comisión...</option>
               {filteredCommissionsForModal.map((commission) => (
@@ -987,7 +1231,7 @@ export const RubricsManager = () => {
             {formErrors.commission_id && (
               <p className="mt-1 text-xs text-danger-1">{formErrors.commission_id}</p>
             )}
-            {(modalMode === 'edit' || modalMode === 'view') && (
+            {(modalMode === 'edit' || modalMode === 'view') && !(isProfessorAdmin || isFacultyAdmin) && (
               <p className="mt-1 text-xs text-text-disabled">La comisión no se puede modificar</p>
             )}
           </div>

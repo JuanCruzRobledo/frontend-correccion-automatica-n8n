@@ -12,54 +12,86 @@
      ========================================== */
 
   /* Backgrounds - Grises más oscuros y definidos */
-  --color-bg-primary: 226 232 240; /* Gris más oscuro (slate-200) */
-  --color-bg-secondary: 241 245 249; /* Gris medio para cards (slate-100) */
-  --color-bg-tertiary: 215 221 232; /* Gris oscuro para inputs */
-  --color-bg-elevated: 248 250 252; /* Cards elevadas (slate-50) */
-  --color-bg-hover: 203 213 225; /* Hover más oscuro (slate-300) */
-  --color-bg-active: 186 199 216; /* Active state más oscuro */
+  --color-bg-primary: 226 232 240;
+  /* Gris más oscuro (slate-200) */
+  --color-bg-secondary: 241 245 249;
+  /* Gris medio para cards (slate-100) */
+  --color-bg-tertiary: 215 221 232;
+  /* Gris oscuro para inputs */
+  --color-bg-elevated: 248 250 252;
+  /* Cards elevadas (slate-50) */
+  --color-bg-hover: 203 213 225;
+  /* Hover más oscuro (slate-300) */
+  --color-bg-active: 186 199 216;
+  /* Active state más oscuro */
 
   /* Textos - Más contraste */
-  --color-text-primary: 15 23 42; /* Casi negro azulado */
-  --color-text-secondary: 51 65 85; /* Gris oscuro */
-  --color-text-tertiary: 100 116 139; /* Gris medio */
-  --color-text-disabled: 148 163 184; /* Gris claro */
-  --color-text-placeholder: 148 163 184; /* Gris claro */
+  --color-text-primary: 15 23 42;
+  /* Casi negro azulado */
+  --color-text-secondary: 51 65 85;
+  /* Gris oscuro */
+  --color-text-tertiary: 100 116 139;
+  /* Gris medio */
+  --color-text-disabled: 148 163 184;
+  /* Gris claro */
+  --color-text-placeholder: 148 163 184;
+  /* Gris claro */
 
   /* Bordes - Más oscuros y definidos */
-  --color-border-primary: 203 213 225; /* Bordes más oscuros (slate-300) */
-  --color-border-secondary: 186 199 216; /* Bordes secundarios más oscuros */
-  --color-border-hover: 148 163 184; /* Hover en bordes */
-  --color-border-focus: 100 116 139; /* Focus en bordes */
+  --color-border-primary: 203 213 225;
+  /* Bordes más oscuros (slate-300) */
+  --color-border-secondary: 186 199 216;
+  /* Bordes secundarios más oscuros */
+  --color-border-hover: 148 163 184;
+  /* Hover en bordes */
+  --color-border-focus: 100 116 139;
+  /* Focus en bordes */
 
   /* Acentos - Azul Marino Profesional (SIN gradientes) */
-  --color-accent-1: 30 64 175; /* Azul marino principal (blue-700) */
-  --color-accent-2: 30 58 138; /* Azul marino oscuro para hover (blue-800) */
-  --color-accent-3: 37 99 235; /* Azul medio para variaciones (blue-600) */
-  --color-danger-1: 220 38 38; /* Rojo profesional (red-600) */
-  --color-danger-2: 185 28 28; /* Rojo oscuro (red-700) */
+  --color-accent-1: 30 64 175;
+  /* Azul marino principal (blue-700) */
+  --color-accent-2: 30 58 138;
+  /* Azul marino oscuro para hover (blue-800) */
+  --color-accent-3: 37 99 235;
+  /* Azul medio para variaciones (blue-600) */
+  --color-danger-1: 220 38 38;
+  /* Rojo profesional (red-600) */
+  --color-danger-2: 185 28 28;
+  /* Rojo oscuro (red-700) */
 
   /* Estados de acento */
-  --color-accent-1-hover: 30 58 138; /* blue-800 para hover */
-  --color-accent-2-hover: 29 78 216; /* blue-700 */
-  --color-accent-3-hover: 30 64 175; /* blue-700 */
+  --color-accent-1-hover: 30 58 138;
+  /* blue-800 para hover */
+  --color-accent-2-hover: 29 78 216;
+  /* blue-700 */
+  --color-accent-3-hover: 30 64 175;
+  /* blue-700 */
 
   /* Focus/Ring */
-  --color-ring: 37 99 235; /* Azul medio para focus (blue-600) */
-  --color-ring-offset: 226 232 240; /* bg-primary actualizado */
+  --color-ring: 37 99 235;
+  /* Azul medio para focus (blue-600) */
+  --color-ring-offset: 226 232 240;
+  /* bg-primary actualizado */
 
   /* Scrollbar - Azul marino */
-  --color-scrollbar-thumb-1: 30 64 175; /* blue-700 */
-  --color-scrollbar-thumb-2: 30 58 138; /* blue-800 */
-  --color-scrollbar-track: 203 213 225; /* border-primary actualizado */
+  --color-scrollbar-thumb-1: 30 64 175;
+  /* blue-700 */
+  --color-scrollbar-thumb-2: 30 58 138;
+  /* blue-800 */
+  --color-scrollbar-track: 203 213 225;
+  /* border-primary actualizado */
 
   /* Aurora backgrounds (tema claro - azul marino sutil) */
-  --aurora-1: 37 99 235; /* blue-600 */
-  --aurora-2: 59 130 246; /* blue-500 */
+  --aurora-1: 37 99 235;
+  /* blue-600 */
+  --aurora-2: 59 130 246;
+  /* blue-500 */
 
   /* Shadows - Azul grisáceo */
-  --shadow-card-rgb: 100 116 139; /* slate-500 */
-  --shadow-hover-rgb: 30 64 175; /* blue-700 */
+  --shadow-card-rgb: 100 116 139;
+  /* slate-500 */
+  --shadow-hover-rgb: 30 64 175;
+  /* blue-700 */
 
   color-scheme: light;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -70,54 +102,86 @@
    ========================================== */
 [data-theme="dark"] {
   /* Backgrounds */
-  --color-bg-primary: 2 6 23; /* slate-950 */
-  --color-bg-secondary: 15 23 42; /* slate-900 */
-  --color-bg-tertiary: 30 41 59; /* slate-800 */
-  --color-bg-elevated: 15 23 42; /* slate-900 */
-  --color-bg-hover: 51 65 85; /* slate-700 */
-  --color-bg-active: 71 85 105; /* slate-600 */
+  --color-bg-primary: 2 6 23;
+  /* slate-950 */
+  --color-bg-secondary: 15 23 42;
+  /* slate-900 */
+  --color-bg-tertiary: 30 41 59;
+  /* slate-800 */
+  --color-bg-elevated: 15 23 42;
+  /* slate-900 */
+  --color-bg-hover: 51 65 85;
+  /* slate-700 */
+  --color-bg-active: 71 85 105;
+  /* slate-600 */
 
   /* Textos */
-  --color-text-primary: 241 245 249; /* slate-100 */
-  --color-text-secondary: 226 232 240; /* slate-200 */
-  --color-text-tertiary: 203 213 225; /* slate-300 */
-  --color-text-disabled: 148 163 184; /* slate-400 */
-  --color-text-placeholder: 148 163 184; /* slate-400 */
+  --color-text-primary: 241 245 249;
+  /* slate-100 */
+  --color-text-secondary: 226 232 240;
+  /* slate-200 */
+  --color-text-tertiary: 203 213 225;
+  /* slate-300 */
+  --color-text-disabled: 148 163 184;
+  /* slate-400 */
+  --color-text-placeholder: 148 163 184;
+  /* slate-400 */
 
   /* Bordes */
-  --color-border-primary: 30 41 59; /* slate-800 */
-  --color-border-secondary: 51 65 85; /* slate-700 */
-  --color-border-hover: 71 85 105; /* slate-600 */
-  --color-border-focus: 100 116 139; /* slate-500 */
+  --color-border-primary: 30 41 59;
+  /* slate-800 */
+  --color-border-secondary: 51 65 85;
+  /* slate-700 */
+  --color-border-hover: 71 85 105;
+  /* slate-600 */
+  --color-border-focus: 100 116 139;
+  /* slate-500 */
 
   /* Acentos - Azul Marino (más claro en tema oscuro para contraste) */
-  --color-accent-1: 59 130 246; /* blue-500 (más brillante para tema oscuro) */
-  --color-accent-2: 37 99 235; /* blue-600 */
-  --color-accent-3: 96 165 250; /* blue-400 (más claro) */
-  --color-danger-1: 239 68 68; /* red-500 */
-  --color-danger-2: 220 38 38; /* red-600 */
+  --color-accent-1: 59 130 246;
+  /* blue-500 (más brillante para tema oscuro) */
+  --color-accent-2: 37 99 235;
+  /* blue-600 */
+  --color-accent-3: 96 165 250;
+  /* blue-400 (más claro) */
+  --color-danger-1: 239 68 68;
+  /* red-500 */
+  --color-danger-2: 220 38 38;
+  /* red-600 */
 
   /* Estados de acento */
-  --color-accent-1-hover: 96 165 250; /* blue-400 más claro para hover */
-  --color-accent-2-hover: 59 130 246; /* blue-500 */
-  --color-accent-3-hover: 147 197 253; /* blue-300 */
+  --color-accent-1-hover: 96 165 250;
+  /* blue-400 más claro para hover */
+  --color-accent-2-hover: 59 130 246;
+  /* blue-500 */
+  --color-accent-3-hover: 147 197 253;
+  /* blue-300 */
 
   /* Focus/Ring */
-  --color-ring: 59 130 246; /* blue-500 */
-  --color-ring-offset: 2 6 23; /* slate-950 */
+  --color-ring: 59 130 246;
+  /* blue-500 */
+  --color-ring-offset: 2 6 23;
+  /* slate-950 */
 
   /* Scrollbar - Azul marino */
-  --color-scrollbar-thumb-1: 59 130 246; /* blue-500 */
-  --color-scrollbar-thumb-2: 37 99 235; /* blue-600 */
-  --color-scrollbar-track: 15 23 42; /* slate-900 */
+  --color-scrollbar-thumb-1: 59 130 246;
+  /* blue-500 */
+  --color-scrollbar-thumb-2: 37 99 235;
+  /* blue-600 */
+  --color-scrollbar-track: 15 23 42;
+  /* slate-900 */
 
   /* Aurora backgrounds (tema oscuro - azul marino) */
-  --aurora-1: 59 130 246; /* blue-500 */
-  --aurora-2: 37 99 235; /* blue-600 */
+  --aurora-1: 59 130 246;
+  /* blue-500 */
+  --aurora-2: 37 99 235;
+  /* blue-600 */
 
   /* Shadows */
-  --shadow-card-rgb: 15 23 42; /* slate-900 */
-  --shadow-hover-rgb: 59 130 246; /* blue-500 */
+  --shadow-card-rgb: 15 23 42;
+  /* slate-900 */
+  --shadow-hover-rgb: 59 130 246;
+  /* blue-500 */
 
   color-scheme: dark;
 }
@@ -184,6 +248,7 @@ body {
 }
 
 @media (min-width: 640px) {
+
   .code-scrollbar::-webkit-scrollbar,
   .result-scrollbar::-webkit-scrollbar {
     width: 0.55rem;

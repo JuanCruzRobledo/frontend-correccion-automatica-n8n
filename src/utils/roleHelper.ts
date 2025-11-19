@@ -67,26 +67,12 @@ export const getAdminPanelTitle = async (user: User | null): Promise<TitleInfo> 
       }
 
       case 'professor-admin': {
-        if (!user.course_ids || user.course_ids.length === 0) {
-          return { title: 'Gestión de Cátedra' };
-        }
-
-        // Si tiene solo 1 curso, mostrar el nombre del curso
-        if (user.course_ids.length === 1) {
-          const courses = await courseService.getCourses();
-          const course = courses.find(
-            (c: Course) => c.course_id === user.course_ids![0]
-          );
-
-          return {
-            title: `Gestión de ${course?.name || 'Cátedra'}`,
-          };
-        }
-
-        // Si tiene múltiples cursos, mostrar título genérico
+        // Título genérico para profesor admin
+        // El usuario seleccionará la materia específica desde el selector
+        const courseCount = user.course_ids?.length || 0;
         return {
-          title: 'Gestión de Cátedras',
-          subtitle: `${user.course_ids.length} materias asignadas`,
+          title: 'Panel de Profesor',
+          subtitle: courseCount > 0 ? `${courseCount} materia${courseCount !== 1 ? 's' : ''} asignada${courseCount !== 1 ? 's' : ''}` : undefined,
         };
       }
 
