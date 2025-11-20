@@ -353,7 +353,7 @@ export interface SetGeminiApiKeyRequest {
 
 // ========== UTILIDADES ==========
 
-export type Role = 'admin' | 'user';
+export type Role = 'super-admin' | 'university-admin' | 'faculty-admin' | 'professor-admin' | 'professor' | 'user' | 'admin';
 
 export interface SelectOption {
   value: string;

@@ -12,6 +12,9 @@ import { Card } from '../shared/Card';
 import { useAuth } from '../../hooks/useAuth';
 import userService, { type CreateUserForm, type UpdateUserForm } from '../../services/userService';
 import universityService from '../../services/universityService';
+import facultyService from '../../services/facultyService';
+import courseService from '../../services/courseService';
+import { getCreatableRoles, getRequiredFieldsForRole, getRoleDisplayName } from '../../utils/roleHelper';
 import type { User } from '../../types';
 
 interface University {
@@ -20,13 +23,31 @@ interface University {
   name: string;
 }
 
+interface Faculty {
+  _id: string;
+  faculty_id: string;
+  name: string;
+  university_id: string;
+}
+
+interface Course {
+  _id: string;
+  course_id: string;
+  name: string;
+  university_id: string;
+  faculty_id: string;
+}
+
 export const UsersManager = () => {
   const { user: currentUser } = useAuth();
   const isSuperAdmin = currentUser?.role === 'super-admin';
   const userUniversityId = currentUser?.university_id;
+  const userFacultyId = currentUser?.faculty_id;
 
   const [users, setUsers] = useState<User[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
@@ -43,14 +64,26 @@ export const UsersManager = () => {
     password: '',
     role: 'user',
     university_id: '',
+    faculty_id: '',
+    course_ids: [],
   });
-  const [formErrors, setFormErrors] = useState({ username: '', name: '', password: '', role: '', university_id: '' });
+  const [formErrors, setFormErrors] = useState({
+    username: '',
+    name: '',
+    password: '',
+    role: '',
+    university_id: '',
+    faculty_id: '',
+    course_ids: ''
+  });
   const [submitting, setSubmitting] = useState(false);
 
-  // Cargar usuarios y universidades al montar
+  // Cargar usuarios y datos iniciales al montar
   useEffect(() => {
     loadUsers();
     loadUniversities();
+    loadFaculties();
+    loadCourses();
   }, [showDeleted]);
 
   const loadUsers = async () => {
@@ -75,16 +108,49 @@ export const UsersManager = () => {
     }
   };
 
+  const loadFaculties = async () => {
+    try {
+      const data = await facultyService.getAllFaculties();
+      setFaculties(data);
+    } catch (err: unknown) {
+      console.error('Error al cargar facultades:', err);
+    }
+  };
+
+  const loadCourses = async () => {
+    try {
+      const data = await courseService.getCourses();
+      setCourses(data);
+    } catch (err: unknown) {
+      console.error('Error al cargar cursos:', err);
+    }
+  };
+
   const handleCreate = () => {
     setModalMode('create');
+
+    // Determinar rol inicial basado en lo que puede crear el usuario actual
+    const creatableRoles = getCreatableRoles(currentUser);
+    const initialRole = (creatableRoles.length > 0 ? creatableRoles[creatableRoles.length - 1] : 'user') as any;
+
     setFormData({
       username: '',
       name: '',
       password: '',
-      role: 'user',
-      university_id: userUniversityId || '' // Pre-llenar para university-admin
+      role: initialRole,
+      university_id: userUniversityId || '',
+      faculty_id: userFacultyId || '',
+      course_ids: [],
     });
-    setFormErrors({ username: '', name: '', password: '', role: '', university_id: '' });
+    setFormErrors({
+      username: '',
+      name: '',
+      password: '',
+      role: '',
+      university_id: '',
+      faculty_id: '',
+      course_ids: ''
+    });
     setSelectedUser(null);
     setIsModalOpen(true);
   };
@@ -94,11 +160,21 @@ export const UsersManager = () => {
     setFormData({
       username: user.username,
       name: user.name,
-      password: '', // No pre-llenar la contraseña
+      password: '',
       role: user.role,
       university_id: user.university_id || '',
+      faculty_id: user.faculty_id || '',
+      course_ids: user.course_ids || [],
     });
-    setFormErrors({ username: '', name: '', password: '', role: '', university_id: '' });
+    setFormErrors({
+      username: '',
+      name: '',
+      password: '',
+      role: '',
+      university_id: '',
+      faculty_id: '',
+      course_ids: ''
+    });
     setSelectedUser(user);
     setIsModalOpen(true);
   };
@@ -136,7 +212,15 @@ export const UsersManager = () => {
 
   const handleSubmit = async () => {
     // Validar
-    const errors = { username: '', name: '', password: '', role: '', university_id: '' };
+    const errors = {
+      username: '',
+      name: '',
+      password: '',
+      role: '',
+      university_id: '',
+      faculty_id: '',
+      course_ids: ''
+    };
 
     if (!formData.username?.trim()) {
       errors.username = 'El nombre de usuario es requerido';
@@ -160,12 +244,24 @@ export const UsersManager = () => {
       errors.role = 'El rol es requerido';
     }
 
-    // Validar university_id: requerido para todos excepto super-admin
-    if (formData.role !== 'super-admin' && !formData.university_id?.trim()) {
+    // Validar campos requeridos según el rol
+    const requiredFields = getRequiredFieldsForRole(formData.role || 'user');
+
+    if (requiredFields.includes('university_id') && !formData.university_id?.trim()) {
       errors.university_id = 'La universidad es requerida para este rol';
     }
 
-    if (errors.username || errors.name || errors.password || errors.role || errors.university_id) {
+    if (requiredFields.includes('faculty_id') && !formData.faculty_id?.trim()) {
+      errors.faculty_id = 'La facultad es requerida para este rol';
+    }
+
+    if (requiredFields.includes('course_ids')) {
+      if (!formData.course_ids || !Array.isArray(formData.course_ids) || formData.course_ids.length === 0) {
+        errors.course_ids = 'Debe seleccionar al menos un curso';
+      }
+    }
+
+    if (errors.username || errors.name || errors.password || errors.role || errors.university_id || errors.faculty_id || errors.course_ids) {
       setFormErrors(errors);
       return;
     }
@@ -197,6 +293,17 @@ export const UsersManager = () => {
 
         if (formData.university_id !== selectedUser.university_id) {
           updateData.university_id = formData.university_id;
+        }
+
+        if (formData.faculty_id !== selectedUser.faculty_id) {
+          updateData.faculty_id = formData.faculty_id;
+        }
+
+        // Comparar course_ids (arrays)
+        const oldCourseIds = selectedUser.course_ids || [];
+        const newCourseIds = formData.course_ids || [];
+        if (JSON.stringify(oldCourseIds.sort()) !== JSON.stringify(newCourseIds.sort())) {
+          updateData.course_ids = newCourseIds;
         }
 
         // Solo actualizar si hay cambios
@@ -392,30 +499,51 @@ export const UsersManager = () => {
           <Select
             label="Rol"
             value={formData.role || 'user'}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+            onChange={(e) => {
+              const newRole = e.target.value;
+              // Limpiar campos que no son requeridos para el nuevo rol
+              const requiredFields = getRequiredFieldsForRole(newRole);
+              setFormData({
+                ...formData,
+                role: newRole as any,
+                faculty_id: requiredFields.includes('faculty_id') ? formData.faculty_id : '',
+                course_ids: requiredFields.includes('course_ids') ? formData.course_ids : [],
+              });
+            }}
             error={formErrors.role}
-            disabled={selectedUser?.username === 'admin' || !isSuperAdmin}
-            tooltip="super-admin: acceso global | university-admin: su universidad | professor: sus comisiones | user: solo corrección"
-            options={isSuperAdmin ? [
-              { value: 'user', label: '👤 Usuario - Solo puede usar el sistema de corrección' },
-              { value: 'professor', label: '👨‍🏫 Profesor - Gestiona entregas de sus comisiones' },
-              { value: 'university-admin', label: '👨‍💼 Admin Universidad - Gestiona su universidad' },
-              { value: 'super-admin', label: '🌟 Super Admin - Acceso global a todas las universidades' },
-            ] : [
-              // university-admin solo puede crear usuarios y profesores
-              { value: 'user', label: '👤 Usuario - Solo puede usar el sistema de corrección' },
-              { value: 'professor', label: '👨‍🏫 Profesor - Gestiona entregas de sus comisiones' },
-            ]}
+            disabled={selectedUser?.username === 'admin'}
+            tooltip="Selecciona el rol según las responsabilidades del usuario"
+            options={getCreatableRoles(currentUser).map(role => {
+              const roleLabels: Record<string, string> = {
+                'super-admin': '🌟 Super Admin - Acceso global',
+                'university-admin': '🏛️ Admin Universidad - Gestiona su universidad',
+                'faculty-admin': '🏫 Admin Facultad - Gestiona su facultad',
+                'professor-admin': '👨‍🏫 Jefe de Cátedra - Gestiona materias',
+                'professor': '👨‍🏫 Profesor - Corrige entregas',
+                'user': '👤 Usuario - Solo corrección',
+              };
+              return {
+                value: role,
+                label: roleLabels[role] || role,
+              };
+            })}
           />
 
-          {/* Campo Universidad: solo visible para super-admin */}
-          {isSuperAdmin && formData.role !== 'super-admin' && (
+          {/* Campo Universidad: visible para super-admin cuando el rol lo requiere */}
+          {isSuperAdmin && getRequiredFieldsForRole(formData.role || 'user').includes('university_id') && (
             <Select
               label="Universidad"
               value={formData.university_id || ''}
-              onChange={(e) => setFormData({ ...formData, university_id: e.target.value })}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  university_id: e.target.value,
+                  faculty_id: '', // Resetear facultad al cambiar universidad
+                  course_ids: [], // Resetear cursos al cambiar universidad
+                });
+              }}
               error={formErrors.university_id}
-              tooltip="Universidad a la que pertenece el usuario (no requerido para super-admin)"
+              tooltip="Universidad a la que pertenece el usuario"
               options={universities.map((uni) => ({
                 value: uni.university_id,
                 label: uni.name,
@@ -424,15 +552,131 @@ export const UsersManager = () => {
             />
           )}
 
-          {/* Mostrar universidad actual si no es super-admin */}
-          {!isSuperAdmin && userUniversityId && (
+          {/* Mostrar universidad heredada si no es super-admin */}
+          {!isSuperAdmin && userUniversityId && getRequiredFieldsForRole(formData.role || 'user').includes('university_id') && (
             <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
               <p className="text-sm text-text-disabled mb-1">Universidad</p>
               <p className="text-text-primary font-medium">
                 {universities.find(u => u.university_id === userUniversityId)?.name || userUniversityId}
               </p>
               <p className="text-xs text-text-disabled mt-1">
-                (los usuarios que crees pertenecerán a tu universidad)
+                (heredado automáticamente)
+              </p>
+            </div>
+          )}
+
+          {/* Campo Facultad: visible cuando el rol lo requiere */}
+          {getRequiredFieldsForRole(formData.role || 'user').includes('faculty_id') && (
+            <>
+              {(isSuperAdmin || currentUser?.role === 'university-admin') && (
+                <Select
+                  label="Facultad"
+                  value={formData.faculty_id || ''}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      faculty_id: e.target.value,
+                      course_ids: [], // Resetear cursos al cambiar facultad
+                    });
+                  }}
+                  error={formErrors.faculty_id}
+                  tooltip="Facultad a la que pertenece el usuario"
+                  options={faculties
+                    .filter(f => !formData.university_id || f.university_id === formData.university_id)
+                    .map((faculty) => ({
+                      value: faculty.faculty_id,
+                      label: faculty.name,
+                    }))}
+                  placeholder="Selecciona una facultad"
+                />
+              )}
+
+              {currentUser?.role === 'faculty-admin' && userFacultyId && (
+                <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+                  <p className="text-sm text-text-disabled mb-1">Facultad</p>
+                  <p className="text-text-primary font-medium">
+                    {faculties.find(f => f.faculty_id === userFacultyId)?.name || userFacultyId}
+                  </p>
+                  <p className="text-xs text-text-disabled mt-1">
+                    (heredado automáticamente)
+                  </p>
+                </div>
+              )}
+
+              {currentUser?.role === 'professor-admin' && userFacultyId && (
+                <div className="bg-bg-tertiary/50 border border-border-secondary rounded-lg p-3">
+                  <p className="text-sm text-text-disabled mb-1">Facultad</p>
+                  <p className="text-text-primary font-medium">
+                    {faculties.find(f => f.faculty_id === userFacultyId)?.name || userFacultyId}
+                  </p>
+                  <p className="text-xs text-text-disabled mt-1">
+                    (heredado automáticamente)
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Campo Cursos: visible cuando el rol lo requiere */}
+          {getRequiredFieldsForRole(formData.role || 'user').includes('course_ids') && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-2">
+                Cursos *
+              </label>
+              <div className="max-h-48 overflow-y-auto border border-border-secondary rounded-lg p-3 bg-bg-tertiary/50">
+                {courses
+                  .filter(c => {
+                    // Filtrar por universidad y facultad si están seleccionadas
+                    if (formData.university_id && c.university_id !== formData.university_id) return false;
+                    if (formData.faculty_id && c.faculty_id !== formData.faculty_id) return false;
+
+                    // Si es professor-admin, solo mostrar sus cursos
+                    if (currentUser?.role === 'professor-admin') {
+                      return currentUser.course_ids?.includes(c.course_id);
+                    }
+
+                    return true;
+                  })
+                  .map((course) => (
+                    <label key={course.course_id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-bg-secondary/30 rounded px-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.course_ids?.includes(course.course_id) || false}
+                        onChange={(e) => {
+                          const currentCourses = formData.course_ids || [];
+                          const newCourses = e.target.checked
+                            ? [...currentCourses, course.course_id]
+                            : currentCourses.filter(id => id !== course.course_id);
+                          setFormData({ ...formData, course_ids: newCourses });
+                        }}
+                        className="w-4 h-4 rounded border-border-secondary bg-bg-tertiary text-accent-1 focus:ring-accent-1 cursor-pointer"
+                      />
+                      <span className="text-sm text-text-primary">{course.name}</span>
+                      <span className="text-xs text-text-disabled ml-auto">{course.course_id}</span>
+                    </label>
+                  ))}
+                {courses.filter(c => {
+                  if (formData.university_id && c.university_id !== formData.university_id) return false;
+                  if (formData.faculty_id && c.faculty_id !== formData.faculty_id) return false;
+                  if (currentUser?.role === 'professor-admin') {
+                    return currentUser.course_ids?.includes(c.course_id);
+                  }
+                  return true;
+                }).length === 0 && (
+                  <p className="text-sm text-text-disabled text-center py-4">
+                    {!formData.university_id
+                      ? 'Selecciona una universidad primero'
+                      : !formData.faculty_id
+                      ? 'Selecciona una facultad primero'
+                      : 'No hay cursos disponibles'}
+                  </p>
+                )}
+              </div>
+              {formErrors.course_ids && (
+                <p className="text-xs text-danger-1 mt-1">{formErrors.course_ids}</p>
+              )}
+              <p className="text-xs text-text-disabled mt-1">
+                Selecciona los cursos que gestionará este usuario
               </p>
             </div>
           )}

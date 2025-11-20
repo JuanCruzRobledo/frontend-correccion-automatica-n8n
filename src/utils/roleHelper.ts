@@ -198,8 +198,7 @@ export const getCreatableRoles = (user: User | null): string[] => {
 
     case 'professor-admin':
       return [
-        'professor',
-        'user',
+        'professor', // Solo puede crear profesores, NO otros professor-admin
       ];
 
     default:
@@ -213,6 +212,22 @@ export const getCreatableRoles = (user: User | null): string[] => {
 export const hasAccessToTab = (user: User | null, tab: string): boolean => {
   const visibleTabs = getVisibleTabs(user);
   return visibleTabs.includes(tab);
+};
+
+/**
+ * Obtiene los campos requeridos para crear un usuario con cierto rol
+ */
+export const getRequiredFieldsForRole = (role: string): string[] => {
+  const requirements: Record<string, string[]> = {
+    'super-admin': [],
+    'university-admin': ['university_id'],
+    'faculty-admin': ['university_id', 'faculty_id'],
+    'professor-admin': ['university_id', 'faculty_id', 'course_ids'],
+    'professor': ['university_id', 'faculty_id', 'course_ids'],
+    'user': ['university_id'],
+  };
+
+  return requirements[role] || [];
 };
 
 /**
@@ -238,5 +253,6 @@ export default {
   canCreateUsers,
   getCreatableRoles,
   hasAccessToTab,
+  getRequiredFieldsForRole,
   getRoleDisplayName,
 };
