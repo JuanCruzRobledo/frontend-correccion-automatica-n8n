@@ -83,6 +83,13 @@ export const CommissionsManager = ({ selectedProfessorCourse }: CommissionsManag
     }
   }, [userUniversityId]);
 
+  // Actualizar filtro de facultad cuando userFacultyId está disponible (para faculty-admin)
+  useEffect(() => {
+    if (userFacultyId && !filterFacultyId) {
+      setFilterFacultyId(userFacultyId);
+    }
+  }, [userFacultyId]);
+
   // Cargar datos al montar
   useEffect(() => {
     loadData();
@@ -545,7 +552,10 @@ export const CommissionsManager = ({ selectedProfessorCourse }: CommissionsManag
               value={filterYear}
               onChange={(e) => {
                 setFilterYear(e.target.value);
-                setFilterFacultyId('');
+                // No resetear filterFacultyId si es faculty-admin (ya que no pueden cambiarlo)
+                if (!isFacultyAdmin) {
+                  setFilterFacultyId('');
+                }
                 setFilterCareerId('');
                 setFilterCourseId('');
               }}

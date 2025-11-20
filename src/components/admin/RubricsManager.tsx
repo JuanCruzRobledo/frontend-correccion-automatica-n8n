@@ -108,6 +108,13 @@ export const RubricsManager = ({ selectedProfessorCourse }: RubricsManagerProps)
     }
   }, [userUniversityId]);
 
+  // Actualizar filtro de facultad cuando userFacultyId está disponible (para faculty-admin)
+  useEffect(() => {
+    if (userFacultyId && !filterFacultyId) {
+      setFilterFacultyId(userFacultyId);
+    }
+  }, [userFacultyId]);
+
   // Cargar datos al montar
   useEffect(() => {
     loadData();
@@ -769,7 +776,10 @@ export const RubricsManager = ({ selectedProfessorCourse }: RubricsManagerProps)
                 value={filterYear}
                 onChange={(e) => {
                   setFilterYear(e.target.value);
-                  setFilterFacultyId('');
+                  // No resetear filterFacultyId si es faculty-admin (ya que no pueden cambiarlo)
+                  if (!isFacultyAdmin) {
+                    setFilterFacultyId('');
+                  }
                   setFilterCareerId('');
                   setFilterCourseId('');
                   setFilterCommissionId('');
@@ -795,7 +805,10 @@ export const RubricsManager = ({ selectedProfessorCourse }: RubricsManagerProps)
                   value={filterUniversityId}
                   onChange={(e) => {
                     setFilterUniversityId(e.target.value);
-                    setFilterFacultyId('');
+                    // No resetear filterFacultyId si es faculty-admin (ya que no pueden cambiarlo)
+                    if (!isFacultyAdmin) {
+                      setFilterFacultyId('');
+                    }
                     setFilterCareerId('');
                     setFilterCourseId('');
                     setFilterCommissionId('');
