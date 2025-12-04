@@ -9,11 +9,11 @@ import { useAuth } from '../../hooks/useAuth';
 interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
-  requireRole?: string;
+  requireRole?: string | string[];
 }
 
 export const ProtectedRoute = ({ children, requireAdmin = false, requireRole }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, isAdmin, hasRole } = useAuth();
+  const { isAuthenticated, loading, isAdmin, user } = useAuth();
 
   // Mientras carga, mostrar spinner
   if (loading) {
@@ -56,9 +56,12 @@ export const ProtectedRoute = ({ children, requireAdmin = false, requireRole }: 
     return <Navigate to="/" replace />;
   }
 
-  // Si requiere un rol específico y no lo tiene, redirigir a home
-  if (requireRole && !hasRole(requireRole)) {
-    return <Navigate to="/" replace />;
+  // Si requiere un rol específico (o array de roles) y no lo tiene, redirigir a home
+  if (requireRole) {
+    const allowedRoles = Array.isArray(requireRole) ? requireRole : [requireRole];
+    if (!allowedRoles.includes(user?.role || '')) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;

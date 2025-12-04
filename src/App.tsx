@@ -106,11 +106,11 @@ function App() {
           }
         />
 
-        {/* Ruta protegida - Professor (solo profesores) */}
+        {/* Ruta protegida - Vista de Comisiones (super-admin y profesores) */}
         <Route
           path="/professor"
           element={
-            <ProtectedRoute requireRole="professor">
+            <ProtectedRoute requireRole={["super-admin", "professor", "professor-admin"]}>
               <ProfessorPage />
             </ProtectedRoute>
           }

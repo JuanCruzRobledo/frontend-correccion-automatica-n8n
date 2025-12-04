@@ -9,10 +9,11 @@ import submissionService, { type Submission } from '../../services/submissionSer
 
 interface SubmissionsListProps {
   rubricId: string;
+  commissionId: string;
   onRefresh: () => void;
 }
 
-export const SubmissionsList = ({ rubricId, onRefresh }: SubmissionsListProps) => {
+export const SubmissionsList = ({ rubricId, commissionId, onRefresh }: SubmissionsListProps) => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -137,17 +138,52 @@ export const SubmissionsList = ({ rubricId, onRefresh }: SubmissionsListProps) =
           )}
 
           {row.status === 'corrected' && row.correction && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => {
-                // TODO: Implementar modal de detalle de corrección
-                alert('Detalle de corrección: ' + JSON.stringify(row.correction, null, 2));
-              }}
-              title="Ver detalle de corrección"
-            >
-              📊 Ver
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  // TODO: Implementar modal de detalle de corrección
+                  alert('Detalle de corrección: ' + JSON.stringify(row.correction, null, 2));
+                }}
+                title="Ver detalle de corrección"
+              >
+                📊 Ver
+              </Button>
+
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(
+                      `http://localhost:5000/api/submissions/${row.submission_id}/devolution-pdf`,
+                      {
+                        method: 'GET',
+                        headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        },
+                      }
+                    );
+
+                    if (!response.ok) throw new Error('Error al descargar PDF');
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${row.student_name}_devolucion.pdf`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (error) {
+                    alert('Error: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+                  }
+                }}
+                title="Descargar PDF de devolución"
+              >
+                📄 PDF
+              </Button>
+            </>
           )}
 
           <Button

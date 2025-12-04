@@ -92,6 +92,9 @@ export interface Rubric {
   source: 'pdf' | 'json' | 'manual';
   original_file_url?: string;
   drive_folder_id?: string; // ID de la carpeta en Google Drive
+  drive_folder_url?: string; // URL de la carpeta en Google Drive
+  spreadsheet_file_id?: string; // ID del archivo entregas.xlsx en Google Drive
+  spreadsheet_file_url?: string; // URL del archivo entregas.xlsx
   deleted?: boolean;
   createdAt?: string;
   updatedAt?: string;

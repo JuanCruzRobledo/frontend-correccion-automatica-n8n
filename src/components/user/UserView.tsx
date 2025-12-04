@@ -449,6 +449,15 @@ export const UserView = () => {
         throw new Error('Rúbrica no encontrada');
       }
 
+      // Verificar que la rúbrica tiene spreadsheet_id y drive_folder_id
+      if (!rubric.spreadsheet_file_id) {
+        throw new Error('La rúbrica no tiene un archivo de entregas configurado. Por favor, recrea la rúbrica.');
+      }
+
+      if (!rubric.drive_folder_id) {
+        throw new Error('La rúbrica no tiene una carpeta configurada. Por favor, recrea la rúbrica.');
+      }
+
       // Llamar al webhook de corrección masiva
       const webhookUrl =
         import.meta.env.VITE_BATCH_GRADING_WEBHOOK_URL ||
@@ -463,6 +472,8 @@ export const UserView = () => {
         rubric_id: rubric.rubric_id, // Enviar el rubric_id del modelo (no el _id de MongoDB)
         rubric_json: rubric.rubric_json,
         gemini_api_key: userProfile.gemini_api_key, // Enviar API key del usuario
+        spreadsheet_id: rubric.spreadsheet_file_id, // ID del archivo entregas.xlsx
+        rubric_folder_id: rubric.drive_folder_id, // ID de la carpeta de la rúbrica en Drive
       });
 
       // Extraer resultado (esperamos { drive_link: "...", alumnos_corregidos: 2 })

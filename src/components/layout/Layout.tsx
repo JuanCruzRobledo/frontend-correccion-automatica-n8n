@@ -88,6 +88,18 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
                         <span className="sm:hidden">👨‍💼</span>
                         <span className="hidden sm:inline">👨‍💼 Admin Panel</span>
                       </Button>
+                      {/* Botón "Ver Comisiones" solo para super-admin */}
+                      {user?.role === 'super-admin' && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => navigate('/professor')}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <span className="sm:hidden">🏛️</span>
+                          <span className="hidden sm:inline">🏛️ Ver Comisiones</span>
+                        </Button>
+                      )}
                       <Button
                         variant="secondary"
                         size="sm"
