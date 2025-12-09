@@ -9,9 +9,11 @@ import { Button } from '../shared/Button';
 import { UploadSubmissionModal } from './UploadSubmissionModal';
 import { SubmissionsList } from './SubmissionsList';
 import { HierarchicalFilters, FilterState } from './HierarchicalFilters';
+import { ConfigureSpreadsheetModal } from './ConfigureSpreadsheetModal';
 import submissionService from '../../services/submissionService';
 import rubricService from '../../services/rubricService';
 import universityService from '../../services/universityService';
+import api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import type { Rubric, University } from '../../types';
 
@@ -49,6 +51,7 @@ export const ProfessorView = () => {
   const [loadingRubrics, setLoadingRubrics] = useState(false);
   const [error, setError] = useState('');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isSpreadsheetModalOpen, setIsSpreadsheetModalOpen] = useState(false);
 
   // Mapa de IDs de universidad a nombres (para super-admin)
   const [universityMap, setUniversityMap] = useState<Record<string, string>>({});
@@ -188,6 +191,20 @@ export const ProfessorView = () => {
     } finally {
       setLoadingRubrics(false);
     }
+  };
+
+  const handleSpreadsheetSaved = (updatedRubric: Rubric) => {
+    setRubrics((prev) =>
+      prev.map((rubric) =>
+        rubric.rubric_id === updatedRubric.rubric_id ? { ...rubric, ...updatedRubric } : rubric
+      )
+    );
+
+    setSelectedRubric((current) =>
+      current && current.rubric_id === updatedRubric.rubric_id ? { ...current, ...updatedRubric } : current
+    );
+
+    setIsSpreadsheetModalOpen(false);
   };
 
   const handleUploadSuccess = () => {
@@ -351,13 +368,38 @@ export const ProfessorView = () => {
 
                     {/* Acciones de Reportes */}
                     {selectedRubric && (
-                      <div className="mt-4 mb-4 flex gap-3 items-center bg-bg-tertiary/50 p-4 rounded-xl border border-border-secondary">
-                        <div className="flex-1">
+                      <div className="mt-4 mb-4 flex gap-3 items-center flex-wrap bg-bg-tertiary/50 p-4 rounded-xl border border-border-secondary">
+                        <div className="flex-1 min-w-[240px]">
                           <p className="text-sm font-medium text-text-primary">Reportes y Devoluciones</p>
                           <p className="text-xs text-text-disabled mt-0.5">
                             Descarga reportes de similitud y genera PDFs de devolución para los estudiantes
                           </p>
+                          <div className="flex items-center gap-3 mt-2 text-xs">
+                            {selectedRubric.spreadsheet_file_id ? (
+                              <span className="text-accent-1 font-semibold">✅ Planilla configurada</span>
+                            ) : (
+                              <span className="text-yellow-400 font-semibold">⚠ Planilla pendiente</span>
+                            )}
+                            {selectedRubric.spreadsheet_file_url && (
+                              <a
+                                href={selectedRubric.spreadsheet_file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-accent-1 hover:underline"
+                              >
+                                Abrir planilla
+                              </a>
+                            )}
+                          </div>
                         </div>
+
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setIsSpreadsheetModalOpen(true)}
+                        >
+                          🗒️ Configurar planilla
+                        </Button>
 
                         <Button
                           size="sm"
@@ -365,19 +407,12 @@ export const ProfessorView = () => {
                           onClick={async () => {
                             if (!selectedCommission || !selectedRubric) return;
                             try {
-                              const response = await fetch(
-                                `http://localhost:5000/api/commissions/${selectedCommission.commission_id}/rubrics/${selectedRubric.rubric_id}/similarity/pdf`,
-                                {
-                                  method: 'GET',
-                                  headers: {
-                                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                                  },
-                                }
+                              const response = await api.get<Blob>(
+                                `/api/commissions/${selectedCommission.commission_id}/rubrics/${selectedRubric.rubric_id}/similarity/pdf`,
+                                { responseType: 'blob' }
                               );
 
-                              if (!response.ok) throw new Error('Error al descargar reporte');
-
-                              const blob = await response.blob();
+                              const blob = response.data as unknown as Blob;
                               const url = window.URL.createObjectURL(blob);
                               const a = document.createElement('a');
                               a.href = url;
@@ -385,7 +420,7 @@ export const ProfessorView = () => {
                               a.click();
                               window.URL.revokeObjectURL(url);
                             } catch (error) {
-                              alert('Error al descargar reporte: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+                              alert('Error al descargar reporte: ' + (error && typeof error === 'object' && 'message' in error ? (error as any).message : 'Error desconocido'));
                             }
                           }}
                         >
@@ -395,24 +430,23 @@ export const ProfessorView = () => {
                         <Button
                           size="sm"
                           variant="primary"
+                          disabled={!selectedRubric.spreadsheet_file_id}
                           onClick={async () => {
                             if (!selectedCommission || !selectedRubric) return;
+                            if (!selectedRubric.spreadsheet_file_id) {
+                              alert('Debes configurar la planilla de Google Sheets primero.');
+                              return;
+                            }
                             if (!confirm('¿Generar PDFs de devolución para todos los estudiantes corregidos?')) return;
 
                             try {
-                              const response = await fetch(
-                                `http://localhost:5000/api/commissions/${selectedCommission.commission_id}/rubrics/${selectedRubric.rubric_id}/generate-devolution-pdfs`,
-                                {
-                                  method: 'POST',
-                                  headers: {
-                                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                                  },
-                                }
+                              const response = await api.post<Blob>(
+                                `/api/commissions/${selectedCommission.commission_id}/rubrics/${selectedRubric.rubric_id}/generate-devolution-pdfs`,
+                                {},
+                                { responseType: 'blob' }
                               );
 
-                              if (!response.ok) throw new Error('Error al generar PDFs');
-
-                              const blob = await response.blob();
+                              const blob = response.data as unknown as Blob;
                               const url = window.URL.createObjectURL(blob);
                               const a = document.createElement('a');
                               a.href = url;
@@ -420,7 +454,7 @@ export const ProfessorView = () => {
                               a.click();
                               window.URL.revokeObjectURL(url);
                             } catch (error) {
-                              alert('Error al generar PDFs: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+                              alert('Error al generar PDFs: ' + (error && typeof error === 'object' && 'message' in error ? (error as any).message : 'Error desconocido'));
                             }
                           }}
                         >
@@ -434,6 +468,7 @@ export const ProfessorView = () => {
                       <SubmissionsList
                         rubricId={selectedRubric.rubric_id}
                         commissionId={selectedCommission.commission_id}
+                        spreadsheetId={selectedRubric.spreadsheet_file_id || ''}
                         onRefresh={() => {}}
                       />
                     )}
@@ -453,6 +488,15 @@ export const ProfessorView = () => {
           rubricId={selectedRubric.rubric_id}
           commissionId={selectedCommission.commission_id}
           onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {selectedRubric && (
+        <ConfigureSpreadsheetModal
+          isOpen={isSpreadsheetModalOpen}
+          onClose={() => setIsSpreadsheetModalOpen(false)}
+          rubric={selectedRubric}
+          onSaved={handleSpreadsheetSaved}
         />
       )}
     </div>

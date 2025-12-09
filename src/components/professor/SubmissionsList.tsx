@@ -6,14 +6,21 @@ import { useState, useEffect } from 'react';
 import { Table } from '../shared/Table';
 import { Button } from '../shared/Button';
 import submissionService, { type Submission } from '../../services/submissionService';
+import api from '../../services/api';
 
 interface SubmissionsListProps {
   rubricId: string;
   commissionId: string;
+  spreadsheetId?: string;
   onRefresh: () => void;
 }
 
-export const SubmissionsList = ({ rubricId, commissionId, onRefresh }: SubmissionsListProps) => {
+export const SubmissionsList = ({
+  rubricId,
+  commissionId,
+  spreadsheetId,
+  onRefresh,
+}: SubmissionsListProps) => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,6 +61,34 @@ export const SubmissionsList = ({ rubricId, commissionId, onRefresh }: Submissio
       window.open(submission.drive_file_url, '_blank');
     } else {
       alert('El archivo aún no está disponible en Drive');
+    }
+  };
+
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = async (submission: Submission) => {
+    try {
+      const encodedName = encodeURIComponent(submission.student_name);
+      const endpoint = spreadsheetId
+        ? `/api/commissions/${commissionId}/rubrics/${rubricId}/students/${encodedName}/devolution-pdf`
+        : `/api/submissions/${submission.submission_id}/devolution-pdf`;
+
+      const response = await api.get<Blob>(endpoint, { responseType: 'blob' });
+      const blob = response.data;
+      downloadFile(blob, `${submission.student_name}_devolucion.pdf`);
+    } catch (err: unknown) {
+      alert(
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : 'Error al descargar el PDF'
+      );
     }
   };
 
@@ -154,37 +189,29 @@ export const SubmissionsList = ({ rubricId, commissionId, onRefresh }: Submissio
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={async () => {
-                  try {
-                    const response = await fetch(
-                      `http://localhost:5000/api/submissions/${row.submission_id}/devolution-pdf`,
-                      {
-                        method: 'GET',
-                        headers: {
-                          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                        },
-                      }
-                    );
-
-                    if (!response.ok) throw new Error('Error al descargar PDF');
-
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${row.student_name}_devolucion.pdf`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                  } catch (error) {
-                    alert('Error: ' + (error instanceof Error ? error.message : 'Error desconocido'));
-                  }
-                }}
+                onClick={() => handleDownloadPdf(row)}
                 title="Descargar PDF de devolución"
               >
                 📄 PDF
               </Button>
             </>
           )}
+
+          <Button
+            size="sm"
+            variant={spreadsheetId ? 'secondary' : 'secondary'}
+            disabled={!spreadsheetId}
+            onClick={() => {
+              if (!spreadsheetId) {
+                alert('Configura la planilla de Google Sheets para generar PDFs.');
+                return;
+              }
+              handleDownloadPdf(row);
+            }}
+            title="Descargar PDF individual (planilla)"
+          >
+            🧾 PDF alumno
+          </Button>
 
           <Button
             size="sm"

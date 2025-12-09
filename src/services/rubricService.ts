@@ -109,6 +109,25 @@ export const deleteRubric = async (id: string): Promise<void> => {
 };
 
 /**
+ * Configurar spreadsheet de Drive para una rúbrica
+ */
+export const updateSpreadsheet = async (
+  rubricId: string,
+  data: { spreadsheet_file_id: string; spreadsheet_file_url?: string }
+): Promise<Rubric> => {
+  const response = await api.put<ApiResponse<Rubric>>(
+    `/api/rubrics/${rubricId}/spreadsheet`,
+    data
+  );
+
+  if (!response.data.data) {
+    throw new Error(response.data.message || 'Error al actualizar la planilla');
+  }
+
+  return response.data.data;
+};
+
+/**
  * Obtener rúbricas por comisión
  */
 export const getRubricsByCommission = async (commissionId: string): Promise<Rubric[]> => {
@@ -121,6 +140,7 @@ const rubricService = {
   createRubric,
   createRubricFromPDF,
   updateRubric,
+  updateSpreadsheet,
   deleteRubric,
   getRubricsByCommission,
 };
