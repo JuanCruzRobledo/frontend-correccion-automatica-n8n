@@ -38,24 +38,14 @@ export const Layout = ({ children, showNavbar = true }: LayoutProps) => {
             <div className="flex items-center justify-between h-full">
               {/* Logo */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-accent-1 via-accent-2 to-accent-3 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
+                <img
+                  src="/active-ia-logo.svg"
+                  alt="Active-IA Logo"
+                  className="w-10 h-10 flex-shrink-0"
+                />
                 <div className="hidden sm:block">
                   <h1 className="text-lg font-semibold text-text-primary">
-                    Sistema de Corrección Automática
+                    Active-IA
                   </h1>
                 </div>
               </div>
